@@ -20,8 +20,8 @@ func GetDatabaseConfig() *DatabaseConfig {
 		Host: getEnv("DB_HOST", "localhost"),
 		Port: getEnv("DB_PORT", "5432"),
 		User: getEnv("DB_USER", "admin"),
-		Password: getEnv("DB_PASSWORD", "admin"),
-		DBName: getEnv("DB_NAME", "obrbix"),
+		Password: getEnv("DB_PASSWORD", "password123"),
+		DBName: getEnv("DB_NAME", "orbix_exchange"),
 	}
 }
 

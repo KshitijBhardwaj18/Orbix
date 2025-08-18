@@ -19,3 +19,4 @@ type User struct {
     // Orders   []Order   `gorm:"foreignKey:UserID"`
     // Balances []Balance `gorm:"foreignKey:UserID"`
 }
+
