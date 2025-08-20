@@ -3,6 +3,8 @@ package middleware
 import (
 	"strings"
 	"github.com/gin-gonic/gin"
+	"log"
+	"github.com/KshitijBhardwaj18/Orbix/services/api-gateway/utils"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -23,14 +25,17 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		if token == "valid-token" {
-			c.Set("user_id","user-123")
-			c.Next()
-		}else{
-			c.JSON(401,gin.H{"error": "Invalid token"})
+		claims, err := utils.ValidateJWT(token)
+
+		if err != nil {
+			c.JSON(401, gin.H{"error": "Authentication Problem"})
+			log.Printf("Authentication Problem : %v", err)
 			c.Abort()
+			return
 		}
 
-
+		c.Set("user_id", claims.UserID)
+		c.Set("email", claims.Email)
+		c.Next()
 	}
 }

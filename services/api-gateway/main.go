@@ -10,28 +10,27 @@ import (
 )
 
 func main() {
-	// db, err := config.ConnectDatabase()
-	// if err != nil {
-	// 	log.Fatalf("Failed to connect to database: %v", err)
-	// }
+	db, err := config.ConnectDatabase()
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
 
 	
 
 	router := gin.Default()
 
-	// public := router.Group("/api/v1")
-
+	public := router.Group("/api/v1")
+	authHandler := handlers.NewAuthHandler(db)
 	{
-		// public.POST("/auth/register", handlers.RegisterHandler)
-		// public.POST("/auth/login", handlers.LoginHandler)
+		 public.POST("/auth/register", authHandler.Register)
+		 public.POST("/auth/login", authHandler.Login)
 		// public.GET("/health", healthHandler)
 	}
 
-	// protected := router.Group("/api/v1")
-	// protected.Use(authMiddleware())
+	protected := router.Group("/api/v1")
+	protected.Use(middleware.AuthMiddleware())
 	{
-		// protected.GET("/auth/profile", profileHandler)
-		// protected.POST("/auth/logout", logoutHandler)
+		protected.GET("/profile", )
 	}
 
 	log.Println("API Gateway is running on port :8080")
