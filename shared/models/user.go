@@ -15,8 +15,8 @@ type User struct {
     UpdatedAt    time.Time
     DeletedAt    gorm.DeletedAt `gorm:"index"`
     
-    // // Relationships
-    // Orders   []Order   `gorm:"foreignKey:UserID"`
-    // Balances []Balance `gorm:"foreignKey:UserID"`
+    
+    Orders   []Order   `gorm:"foreignKey:UserID"`
+    Balances []Balance `gorm:"foreignKey:UserID"`
 }
 

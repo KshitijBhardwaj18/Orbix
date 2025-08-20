@@ -2,10 +2,10 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15
-    enviornment:
+    environment:
       POSTGRES_DB: orbix_exchange
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
+      POSTGRES_PASSWORD: password123
     ports:
       - 5432:5432
     volumes:
