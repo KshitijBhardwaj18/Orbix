@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"github.com/KshitijBhardwaj18/Orbix/services/db/config"
-	"github.com/KshitijBhardwaj18/Orbix/services/db/models"
+	"github.com/KshitijBhardwaj18/Orbix/shared/models"
 	"github.com/gin-gonic/gin"
 )
 
