@@ -11,7 +11,7 @@ type OrderRequest struct {
 	Side		string		`json:"side"`
 	Type		string		`json:"type"`
 	Quantity	decimal.Decimal		`json:"quantity"`
-	Price		decimal.Decimal		`json:"price"`
+	Price		*decimal.Decimal		`json:"price"`
 	Timestamp	time.Time		`json:"timestamp"`
 }
 
@@ -49,6 +49,6 @@ type OrderBookUpdate struct {
 }
 
 type OrderBookLevel struct {
-	Price  decimal.Decimal	`json:"price"`
+	Price  *decimal.Decimal	`json:"price"`
 	Quantity decimal.Decimal `json:"quantity"`
 }

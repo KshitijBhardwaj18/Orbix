@@ -1,4 +1,4 @@
-module github.com/KshitijBhardwaj/Orbix/shared/broker
+module github.com/KshitijBhardwaj18/Orbix/shared/broker
 
 go 1.24.6
 
