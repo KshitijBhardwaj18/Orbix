@@ -4,4 +4,6 @@ use (
 	./services/api-gateway
 	./services/db
 	./shared/models
+	./shared/broker
+	./shared/messages
 )
