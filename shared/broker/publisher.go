@@ -50,3 +50,4 @@ func (r *RedisClient) PublishOrderBookUpdate(update *messages.OrderBookUpdate) e
 	}
 	return r.rdb.Publish(r.ctx, "orderbook.update", data).Err()
 }
+

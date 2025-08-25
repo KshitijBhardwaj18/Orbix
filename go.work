@@ -3,6 +3,7 @@ go 1.24.6
 use (
 	./services/api-gateway
 	./services/db
+	./services/engine
 	./shared/broker
 	./shared/messages
 	./shared/models

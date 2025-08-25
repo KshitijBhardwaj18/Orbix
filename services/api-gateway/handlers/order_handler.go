@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	
 	"time"
 
 	"github.com/KshitijBhardwaj18/Orbix/shared/broker"
@@ -66,13 +65,11 @@ func (h *OrderHandler) PlaceOrder(c *gin.Context){
 		Timestamp: time.Now(),
 	}
 
-	if err,res := h.broker.CreateOrder(orderReq); err != nil {
+	response,err := h.broker.CreateOrder(orderReq); 
+	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to process order"})
 		return
 	}
 
-	c.JSON(202, gin.H{
-		"message": "Order submitted for processing",
-		"status": "submitted",
-	})
+	c.JSON(201, response )
 } 

@@ -38,3 +38,40 @@ func(r *RedisClient) CreateOrder(order *messages.OrderRequest) (*messages.OrderR
 		return nil, errors.New("engine timeout")
 	}
 }
+
+// func (r *RedisClient) PublishToClient(message interface{}, clientId string) error {
+// 	return r.rdb.Publish(r.ctx,clientId,message).Err()
+// }
+
+type QueueMessage struct {
+	ClientID string `json:"clientId"`
+	MessageType string `json:"messageType"`
+	Data string `json:"data"`
+}
+
+func (r *RedisClient) BRPop(queueName string) (*QueueMessage, error){
+	result, err := r.rdb.BRPop(r.ctx,0,queueName).Result()
+
+	if err != nil {
+		return nil, err
+	}
+
+	messageData := result[1]
+
+	var queueMsg QueueMessage
+	err = json.Unmarshal([]byte(messageData), &queueMsg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &queueMsg, nil
+}
+
+func (r *RedisClient) PublishToClient(clientID string, response interface{}) error {
+    data, err := json.Marshal(response)
+    if err != nil {
+        return err
+    }
+    
+    return r.rdb.Publish(r.ctx, clientID, data).Err()
+}
