@@ -46,7 +46,7 @@ func(r *RedisClient) CreateOrder(order *messages.OrderRequest) (*messages.OrderR
 type QueueMessage struct {
 	ClientID string `json:"clientId"`
 	MessageType string `json:"messageType"`
-	Data string `json:"data"`
+	Data interface{} `json:"data"`
 }
 
 func (r *RedisClient) BRPop(queueName string) (*QueueMessage, error){
