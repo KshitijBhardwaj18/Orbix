@@ -16,10 +16,10 @@ type Trade struct {
     Price         decimal.Decimal `gorm:"type:decimal(20,8);not null"`
     Quantity      decimal.Decimal `gorm:"type:decimal(20,8);not null"`
     QuoteQuantity decimal.Decimal `gorm:"type:decimal(20,8);not null"`
-	BuyerFee     decimal.Decimal `gorm:"type:decimal(20,8);not null"`
-	SellerFee    decimal.Decimal `gorm:"type:decimal(20,8);not null"`
+	BuyerFee      *decimal.Decimal  `gorm:"type:decimal(20,8);not null"`
+	SellerFee     *decimal.Decimal  `gorm:"type:decimal(20,8);not null"`
 	IsBuyerMaker  bool            `gorm:"not null"`
-	CreatedAt    time.Time       `gorm:"index"`
+	CreatedAt    time.Time        `gorm:"index"`
 
 
     Market      Market `gorm:"foreignKey:MarketID"`
