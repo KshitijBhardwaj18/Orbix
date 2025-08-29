@@ -123,7 +123,7 @@ func (o *OrderBook) matchAsk(order *models.Order) {
 		}
 	}
 
-	// Remove filled bid orders
+	
 	for i := len(o.Bids) - 1; i >= 0; i-- {
 		if o.Bids[i].FilledQuantity.Equal(o.Bids[i].Quantity) {
 			o.Bids = append(o.Bids[:i], o.Bids[i+1:]...)
@@ -132,17 +132,16 @@ func (o *OrderBook) matchAsk(order *models.Order) {
 }
 
 func (o *OrderBook) GetOpenOrders(userID uuid.UUID) []models.Order {
-    // Pre-allocate slice to avoid multiple reallocations
+
     openOrders := make([]models.Order, 0, len(o.Asks)+len(o.Bids))
     
-    // Filter and append asks
+    
     for _, ask := range o.Asks {
         if ask.UserID == userID {
             openOrders = append(openOrders, ask)
         }
     }
     
-    // Filter and append bids
     for _, bid := range o.Bids {
         if bid.UserID == userID {
             openOrders = append(openOrders, bid)
@@ -152,4 +151,6 @@ func (o *OrderBook) GetOpenOrders(userID uuid.UUID) []models.Order {
     return openOrders
 }
 
-func (o *OrderBook )
+func (o *OrderBook ) GetDepth() {
+	
+}

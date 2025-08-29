@@ -53,3 +53,16 @@ type OrderBookLevel struct {
 	Price    *decimal.Decimal `json:"price"`
 	Quantity decimal.Decimal  `json:"quantity"`
 }
+
+type DepthLevel struct {
+    Price    decimal.Decimal `json:"price"`
+    Quantity decimal.Decimal `json:"quantity"`
+    Total    decimal.Decimal `json:"total"`
+}
+
+type MarketDepth struct {
+    Symbol    string       `json:"symbol"`
+    Bids      []DepthLevel `json:"bids"`
+    Asks      []DepthLevel `json:"asks"`
+    Timestamp time.Time    `json:"timestamp"`
+}
