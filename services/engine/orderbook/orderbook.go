@@ -7,6 +7,8 @@ import (
 	"github.com/KshitijBhardwaj18/Orbix/shared/models"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+
+	"sort"
 )
 
 type OrderBook struct {
@@ -70,10 +72,10 @@ func (o *OrderBook) matchBid(order *models.Order) {
 				BuyerOrderID:  order.ID,
 				SellerOrderID: o.Asks[i].ID,
 				Price:         *o.Asks[i].Price,
-				IsBuyerMaker: true,
+				IsBuyerMaker:  true,
 				Quantity:      filledQuantity,
 				QuoteQuantity: o.Asks[i].Price.Mul(filledQuantity),
-				CreatedAt: time.Now(),
+				CreatedAt:     time.Now(),
 			}
 
 			order.Trades = append(order.Trades, trade)
@@ -108,13 +110,13 @@ func (o *OrderBook) matchAsk(order *models.Order) {
 				ID:            uuid.New(),
 				MarketID:      order.MarketID,
 				BuyerID:       o.Bids[i].UserID,
-				SellerID:      order.UserID,     
-				BuyerOrderID:  o.Bids[i].ID,    
-				SellerOrderID: order.ID,         
-				Price:         *o.Bids[i].Price,     
+				SellerID:      order.UserID,
+				BuyerOrderID:  o.Bids[i].ID,
+				SellerOrderID: order.ID,
+				Price:         *o.Bids[i].Price,
 				Quantity:      filledQuantity,
 				QuoteQuantity: order.Price.Mul(filledQuantity),
-				IsBuyerMaker: false,
+				IsBuyerMaker:  false,
 			}
 
 			order.Trades = append(order.Trades, trade)
@@ -123,7 +125,6 @@ func (o *OrderBook) matchAsk(order *models.Order) {
 		}
 	}
 
-	
 	for i := len(o.Bids) - 1; i >= 0; i-- {
 		if o.Bids[i].FilledQuantity.Equal(o.Bids[i].Quantity) {
 			o.Bids = append(o.Bids[:i], o.Bids[i+1:]...)
@@ -133,24 +134,97 @@ func (o *OrderBook) matchAsk(order *models.Order) {
 
 func (o *OrderBook) GetOpenOrders(userID uuid.UUID) []models.Order {
 
-    openOrders := make([]models.Order, 0, len(o.Asks)+len(o.Bids))
-    
-    
-    for _, ask := range o.Asks {
-        if ask.UserID == userID {
-            openOrders = append(openOrders, ask)
-        }
-    }
-    
-    for _, bid := range o.Bids {
-        if bid.UserID == userID {
-            openOrders = append(openOrders, bid)
-        }
-    }
-    
-    return openOrders
+	openOrders := make([]models.Order, 0, len(o.Asks)+len(o.Bids))
+
+	for _, ask := range o.Asks {
+		if ask.UserID == userID {
+			openOrders = append(openOrders, ask)
+		}
+	}
+
+	for _, bid := range o.Bids {
+		if bid.UserID == userID {
+			openOrders = append(openOrders, bid)
+		}
+	}
+
+	return openOrders
 }
 
-func (o *OrderBook ) GetDepth() {
-	
+type DepthLevel struct {
+	Price    decimal.Decimal `json:"price"`
+	Quantity decimal.Decimal `json:"quantity"`
+	Total    decimal.Decimal `json:"total"`
+}
+
+type MarketDepth struct {
+	Symbol    string       `json:"symbol"`
+	Bids      []DepthLevel `json:"bids"`
+	Asks      []DepthLevel `json:"asks"`
+	Timestamp time.Time    `json:"timestamp"`
+}
+
+func (o *OrderBook) GetDepth(maxLevels int) *MarketDepth {
+	// Aggregate orders by price level
+	bidLevels := o.aggregateOrdersByPrice(o.Bids)
+	askLevels := o.aggregateOrdersByPrice(o.Asks)
+
+	sort.Slice(bidLevels, func(i, j int) bool {
+		return bidLevels[i].Price.GreaterThan(bidLevels[j].Price)
+	})
+	sort.Slice(askLevels, func(i, j int) bool {
+		return askLevels[i].Price.LessThan(askLevels[j].Price)
+	})
+
+	bids := o.calculateCumulativeTotals(bidLevels, maxLevels)
+	asks := o.calculateCumulativeTotals(askLevels, maxLevels)
+
+	return &MarketDepth{
+		Symbol:    o.GetTicker(),
+		Bids:      bids,
+		Asks:      asks,
+		Timestamp: time.Now(),
+	}
+}
+
+func (o *OrderBook) aggregateOrdersByPrice(orders []models.Order) []DepthLevel {
+	priceMap := make(map[string]decimal.Decimal)
+
+	for _, order := range orders {
+		if order.Price == nil {
+			continue
+		}
+
+		priceStr := order.Price.String()
+		if existing, exists := priceMap[priceStr]; exists {
+			priceMap[priceStr] = existing.Add(order.RemainingQuantity)
+		} else {
+			priceMap[priceStr] = order.RemainingQuantity
+		}
+	}
+
+	levels := make([]DepthLevel, 0, len(priceMap))
+	for priceStr, quantity := range priceMap {
+		price, _ := decimal.NewFromString(priceStr)
+		levels = append(levels, DepthLevel{
+			Price:    price,
+			Quantity: quantity,
+		})
+	}
+
+	return levels
+}
+
+func (o *OrderBook) calculateCumulativeTotals(levels []DepthLevel, maxLevels int) []DepthLevel {
+	if maxLevels > 0 && len(levels) > maxLevels {
+		levels = levels[:maxLevels]
+	}
+
+	total := decimal.Zero
+	for i := range levels {
+		total = total.Add(levels[i].Quantity)
+		levels[i].Total = total
+	}
+
+	return levels
 }
