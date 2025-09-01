@@ -3,17 +3,17 @@ package messages
 import (
 	"time"
 
+	"github.com/KshitijBhardwaj18/Orbix/shared/models"
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
 type OrderRequest struct {
-	UserID    string           `json:"user_id"`
-	Symbol    string           `json:"symbol"`
-	Side      string           `json:"side"`
-	Type      string           `json:"type"`
-	Quantity  decimal.Decimal  `json:"quantity"`
-	Price     *decimal.Decimal `json:"price"`
-	Timestamp time.Time        `json:"timestamp"`
+	UserID   uuid.UUID        `gorm:"type:uuid;not null;index"`
+	MarketID string           `gorm:"type:varchar(20);not null;index"`
+	Side     models.OrderSide `gorm:"type:varchar(4);not null"`
+	Quantity decimal.Decimal  `gorm:"type:decimal(20,8);not null"`
+	Price    *decimal.Decimal `gorm:"type:decimal(20,8)"`
 }
 
 type CancelOrderRequest struct {
@@ -55,14 +55,20 @@ type OrderBookLevel struct {
 }
 
 type DepthLevel struct {
-    Price    decimal.Decimal `json:"price"`
-    Quantity decimal.Decimal `json:"quantity"`
-    Total    decimal.Decimal `json:"total"`
+	Price    decimal.Decimal `json:"price"`
+	Quantity decimal.Decimal `json:"quantity"`
+	Total    decimal.Decimal `json:"total"`
 }
 
 type MarketDepth struct {
-    Symbol    string       `json:"symbol"`
-    Bids      []DepthLevel `json:"bids"`
-    Asks      []DepthLevel `json:"asks"`
-    Timestamp time.Time    `json:"timestamp"`
+	Symbol    string       `json:"symbol"`
+	Bids      []DepthLevel `json:"bids"`
+	Asks      []DepthLevel `json:"asks"`
+	Timestamp time.Time    `json:"timestamp"`
+}
+
+type MessageFromAPI struct {
+	ClientId    string      `json:"clientId"`
+	MessageType string      `json:"messageType"`
+	Data        interface{} `json:"data"`
 }

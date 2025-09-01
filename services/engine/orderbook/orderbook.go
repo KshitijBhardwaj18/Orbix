@@ -221,6 +221,7 @@ func (o *OrderBook) calculateCumulativeTotals(levels []DepthLevel, maxLevels int
 	}
 
 	total := decimal.Zero
+
 	for i := range levels {
 		total = total.Add(levels[i].Quantity)
 		levels[i].Total = total

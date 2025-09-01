@@ -7,4 +7,5 @@ use (
 	./shared/broker
 	./shared/messages
 	./shared/models
+	./shared/utils
 )
