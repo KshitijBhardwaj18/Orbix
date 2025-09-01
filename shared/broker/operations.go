@@ -3,26 +3,28 @@ package broker
 import (
 	"encoding/json"
 
-	"github.com/KshitijBhardwaj18/Orbix/shared/messages"
-	"github.com/google/uuid"
-	"time"
 	"errors"
+	"time"
+
+	"github.com/KshitijBhardwaj18/Orbix/shared/messages"
+	"github.com/KshitijBhardwaj18/Orbix/shared/models"
+	"github.com/google/uuid"
 )
 
-func(r *RedisClient) CreateOrder(order *messages.OrderRequest) (*messages.OrderResponse, error) {
+func (r *Broker) CreateOrder(order *messages.OrderRequest) (*models.Order, error) {
 	clientId := uuid.New().String()
 
-	request := map[string]interface{}{
-		"clientId": clientId,
-		"messageType": "CREATE_ORDER",
-		"data": order,
+	request := &messages.MessageFromAPI{
+		ClientId:    clientId,
+		MessageType: "CREATE_ORDER",
+		Data:        order,
 	}
 
-	pubsub := r.rdb.Subscribe(r.ctx,clientId)
+	pubsub := r.rdb.Subscribe(r.ctx, clientId)
 	defer pubsub.Close()
 
 	requestData, _ := json.Marshal(request)
-	err := r.rdb.LPush(r.ctx,"engine_requests",requestData).Err()
+	err := r.rdb.LPush(r.ctx, "engine_requests", requestData).Err()
 
 	if err != nil {
 		return nil, err
@@ -30,27 +32,17 @@ func(r *RedisClient) CreateOrder(order *messages.OrderRequest) (*messages.OrderR
 
 	select {
 	case msg := <-pubsub.Channel():
-		var response messages.OrderResponse
+		var response models.Order
 		err := json.Unmarshal([]byte(msg.Payload), &response)
 		return &response, err
-	
+
 	case <-time.After(5 * time.Second):
 		return nil, errors.New("engine timeout")
 	}
 }
 
-// func (r *RedisClient) PublishToClient(message interface{}, clientId string) error {
-// 	return r.rdb.Publish(r.ctx,clientId,message).Err()
-// }
-
-type QueueMessage struct {
-	ClientID string `json:"clientId"`
-	MessageType string `json:"messageType"`
-	Data interface{} `json:"data"`
-}
-
-func (r *RedisClient) BRPop(queueName string) (*QueueMessage, error){
-	result, err := r.rdb.BRPop(r.ctx,0,queueName).Result()
+func (r *Broker) BRPop(queueName string) (*messages.MessageFromAPI, error) {
+	result, err := r.rdb.BRPop(r.ctx, 0, queueName).Result()
 
 	if err != nil {
 		return nil, err
@@ -58,7 +50,7 @@ func (r *RedisClient) BRPop(queueName string) (*QueueMessage, error){
 
 	messageData := result[1]
 
-	var queueMsg QueueMessage
+	var queueMsg messages.MessageFromAPI
 	err = json.Unmarshal([]byte(messageData), &queueMsg)
 	if err != nil {
 		return nil, err
@@ -67,11 +59,11 @@ func (r *RedisClient) BRPop(queueName string) (*QueueMessage, error){
 	return &queueMsg, nil
 }
 
-func (r *RedisClient) PublishToClient(clientID string, response interface{}) error {
-    data, err := json.Marshal(response)
-    if err != nil {
-        return err
-    }
-    
-    return r.rdb.Publish(r.ctx, clientID, data).Err()
+func (r *Broker) PublishToClient(Type string, clientID string, response interface{}) error {
+	data, err := json.Marshal(response)
+	if err != nil {
+		return err
+	}
+
+	return r.rdb.Publish(r.ctx, clientID, data).Err()
 }

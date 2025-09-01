@@ -14,6 +14,7 @@ type OrderRequest struct {
 	Side     models.OrderSide `gorm:"type:varchar(4);not null"`
 	Quantity decimal.Decimal  `gorm:"type:decimal(20,8);not null"`
 	Price    *decimal.Decimal `gorm:"type:decimal(20,8)"`
+	Type     models.OrderType `gorm:"type:varchar(5);not null"`
 }
 
 type CancelOrderRequest struct {

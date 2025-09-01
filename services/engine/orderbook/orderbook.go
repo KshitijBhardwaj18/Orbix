@@ -2,6 +2,7 @@ package orderbook
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/KshitijBhardwaj18/Orbix/shared/models"
@@ -36,7 +37,7 @@ func (o *OrderBook) GetTicker() string {
 }
 
 func (o *OrderBook) AddOrder(order *models.Order) *models.Order {
-	if order.Side == "buy" {
+	if order.Side == "BUY" {
 		o.matchBid(order)
 		if order.FilledQuantity == order.Quantity {
 			return order
@@ -79,23 +80,25 @@ func (o *OrderBook) matchBid(order *models.Order) {
 			}
 
 			order.Trades = append(order.Trades, trade)
-			o.CurrentPrice = *o.Asks[i].Price
+			o.CurrentPrice = trade.Price
 			o.LastTradeId = trade.ID.String()
 
 		}
 
 	}
 
-	for i := 0; i < len(o.Asks); i++ {
-		if o.Asks[i].FilledQuantity.Equal(o.Asks[i].Quantity) {
+	for i := len(o.Asks) - 1; i >= 0; i-- {
+		if o.Asks[i].RemainingQuantity.Equal(decimal.Zero) {
+			log.Print("Reached here in the equation")
 			o.Asks = append(o.Asks[:i], o.Asks[i+1:]...)
-			i--
+
 		}
 	}
 
 }
 
 func (o *OrderBook) matchAsk(order *models.Order) {
+	log.Printf("Reached here")
 	for i := 0; i < len(o.Bids); i++ {
 		if o.Bids[i].Price.GreaterThanOrEqual(*order.Price) && !order.FilledQuantity.Equal(order.Quantity) {
 			filledQuantity := decimal.Min(o.Bids[i].RemainingQuantity, order.RemainingQuantity)
@@ -120,13 +123,13 @@ func (o *OrderBook) matchAsk(order *models.Order) {
 			}
 
 			order.Trades = append(order.Trades, trade)
-			o.CurrentPrice = *o.Asks[i].Price
+			o.CurrentPrice = trade.Price
 			o.LastTradeId = trade.ID.String()
 		}
 	}
 
 	for i := len(o.Bids) - 1; i >= 0; i-- {
-		if o.Bids[i].FilledQuantity.Equal(o.Bids[i].Quantity) {
+		if o.Bids[i].RemainingQuantity.Equal(decimal.Zero) {
 			o.Bids = append(o.Bids[:i], o.Bids[i+1:]...)
 		}
 	}

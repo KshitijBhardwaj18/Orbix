@@ -4,6 +4,8 @@ github.com/KshitijBhardwaj18/Orbix/shared/messages v0.0.0-20250824104727-09654a6
 github.com/KshitijBhardwaj18/Orbix/shared/messages v0.0.0-20250824104727-09654a6560ea/go.mod h1:WHDwklmB3ziVhVy/rJxzinfHBWqkpgxBnzWFWDBKGYs=
 github.com/KshitijBhardwaj18/Orbix/shared/models v0.0.0-20250825181841-971d6ed495d0 h1:YK12YDBmahOJBC9Q4+qbns0+SAGqsRb2Z5QNQ4pNZlk=
 github.com/KshitijBhardwaj18/Orbix/shared/models v0.0.0-20250825181841-971d6ed495d0/go.mod h1:HDe3xYb7PKNo3fB8dspATwW8wZcV0Ti7hrImnxX4Hug=
+github.com/KshitijBhardwaj18/Orbix/shared/utils v0.0.0-20250901054602-11254b67dbcb h1:Ke5EXwLTv7e5yvYeLVsZDPAe9BQW/P+bMpyJ9jsHE7Q=
+github.com/KshitijBhardwaj18/Orbix/shared/utils v0.0.0-20250901054602-11254b67dbcb/go.mod h1:FZTMTyozliuaEuwSusF31i5b03PuRDXYjw+D4NKK6d4=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=
 github.com/bsm/ginkgo/v2 v2.12.0/go.mod h1:SwYbGRRDovPVboqFv0tPTcG1sN61LM1Z4ARdbAV9g4c=
 github.com/bsm/gomega v1.27.10 h1:yeMWxP2pV2fG3FgAODIY8EiRE3dy0aeFYt4l7wh6yKA=
