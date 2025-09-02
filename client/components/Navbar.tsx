@@ -20,8 +20,8 @@ function Navbar() {
     },
   ];
   return (
-    <div className="bg-primary w-full">
-      <div className="flex flex-row items-center justify-between border p-2 px-4">
+    <div className="bg-secondary w-full">
+      <div className="flex flex-row items-center justify-between  p-2 px-4">
         <div className="flex flex-row gap-10">
           <div className="flex items-center justify-center">
             <img alt="logo" src="./logo.png" className="mt-1 size-8"></img>
