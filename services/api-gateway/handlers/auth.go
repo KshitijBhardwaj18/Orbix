@@ -82,6 +82,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	c.SetCookie(
+		"authToken",
+		token,
+		3600,
+		"/",
+		"localhost",
+		false,
+		true,
+	)
+
 	c.JSON(200, gin.H{
 		"message": "Login successful",
 		"token":  token,

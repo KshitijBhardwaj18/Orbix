@@ -8,6 +8,8 @@ import (
 	"github.com/KshitijBhardwaj18/Orbix/services/api-gateway/middleware"
 	"github.com/KshitijBhardwaj18/Orbix/shared/broker"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-contrib/cors"
+	"time"
 )
 
 func main() {
@@ -23,6 +25,15 @@ func main() {
 	
 
 	router := gin.Default()
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"}, // your React frontend
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge: 12 * time.Hour,
+	}))
 
 	public := router.Group("/api/v1")
 	

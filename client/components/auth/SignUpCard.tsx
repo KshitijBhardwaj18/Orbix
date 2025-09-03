@@ -1,11 +1,14 @@
 "use client";
 import React, { useState } from "react";
+import {api} from "@/lib/axios"
+import { registerUser } from "@/services/auth";
 
 function SignUpCard() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
@@ -23,6 +26,16 @@ function SignUpCard() {
 
   const passwordStrength = getPasswordStrength(password);
 
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+
+      const response = registerUser({email,username,password});
+
+      response.
+
+      console.log(response)
+  }
+
   return (
     <div className="mx-4 w-full max-w-md">
       <div className="bg-primary rounded-2xl border-[0.5px] border-neutral-800 p-8 shadow-2xl">
@@ -38,7 +51,19 @@ function SignUpCard() {
         </div>
 
         {/* Form */}
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={onSubmit}>
+        <div>
+            <label className="mb-2 block text-sm font-medium text-gray-300">
+              Username
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="bg-secondary w-full rounded-xl border border-neutral-800 px-4 py-3 text-gray-300 placeholder-gray-400 transition-colors focus:border-blue-500 focus:outline-none"
+              placeholder="Enter your username"
+            />
+          </div>
           {/* Email Field */}
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-300">
@@ -209,6 +234,7 @@ function SignUpCard() {
 
           {/* Sign Up Button */}
           <button
+           
             type="submit"
             className="w-full rounded-xl bg-gray-300 px-4 py-3 font-semibold text-gray-800 transition-colors hover:bg-gray-200"
           >
