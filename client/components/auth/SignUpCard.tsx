@@ -1,7 +1,10 @@
 "use client";
 import React, { useState } from "react";
-import {api} from "@/lib/axios"
+import { api } from "@/lib/axios";
 import { registerUser } from "@/services/auth";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { AxiosError } from "axios";
 
 function SignUpCard() {
   const [showPassword, setShowPassword] = useState(false);
@@ -11,6 +14,7 @@ function SignUpCard() {
   const [username, setUsername] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const router = useRouter();
 
   const passwordStrengthLabel = ["poor", "bad", "Okayish", "Good"];
 
@@ -27,14 +31,42 @@ function SignUpCard() {
   const passwordStrength = getPasswordStrength(password);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault()
-
-      const response = registerUser({email,username,password});
-
-      response.
-
-      console.log(response)
-  }
+    e.preventDefault();
+    try {
+      const response = await registerUser({
+        email: email,
+        username: username,
+        password: password,
+      });
+      console.log(response);
+      toast.success("Account created successfully👍");
+      router.push("/signin");
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        if (err.response) {
+          // Backend responded with error (4xx or 5xx)
+          if (err.response.status === 400) {
+            toast.error("Invalid input. Please check your details.");
+          } else if (err.response.status === 409) {
+            // You can make backend return 409 Conflict if user exists
+            toast.error("User already exists. Try logging in.");
+          } else if (err.response.status === 500) {
+            toast.error("Server error. Please try again later.");
+          } else {
+            toast.error(err.response.data.error || "Something went wrong.");
+          }
+        } else if (err.request) {
+          // Request made but no response
+          toast.error("No response from server. Check your connection.");
+        } else {
+          // Something else went wrong
+          toast.error("Unexpected error occurred.");
+        }
+      } else {
+        toast.error("Unexpected error occured");
+      }
+    }
+  };
 
   return (
     <div className="mx-4 w-full max-w-md">
@@ -52,7 +84,7 @@ function SignUpCard() {
 
         {/* Form */}
         <form className="space-y-6" onSubmit={onSubmit}>
-        <div>
+          <div>
             <label className="mb-2 block text-sm font-medium text-gray-300">
               Username
             </label>
@@ -211,7 +243,7 @@ function SignUpCard() {
               id="terms"
               checked={agreeToTerms}
               onChange={(e) => setAgreeToTerms(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-gray-600 bg-gray-700 text-blue-500  "
+              className="mt-1 h-4 w-4 rounded border-gray-600 bg-gray-700 text-blue-500"
             />
             <label htmlFor="terms" className="text-sm text-gray-300">
               By signing up, I agree to the{" "}
@@ -234,15 +266,11 @@ function SignUpCard() {
 
           {/* Sign Up Button */}
           <button
-           
             type="submit"
             className="w-full rounded-xl bg-gray-300 px-4 py-3 font-semibold text-gray-800 transition-colors hover:bg-gray-200"
           >
             Sign up
           </button>
-
-        
-        
         </form>
       </div>
     </div>

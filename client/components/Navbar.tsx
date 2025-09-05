@@ -23,13 +23,13 @@ function Navbar() {
     <div className="bg-secondary w-full">
       <div className="flex flex-row items-center justify-between p-2 px-4">
         <div className="flex flex-row gap-10">
-          <div className="flex items-center justify-center">
-            <img alt="logo" src="./logo.png" className="mt-1 size-8"></img>
-            <p className="text-center font-bold text-white">Orbix</p>
+          <div className="flex items-center justify-center cursor-pointer">
+            <img alt="logo" src="./logo.png" className="mt-1 size-8 "></img>
+            <p className="text-center font-bold text-white cursor-pointer">Orbix</p>
           </div>
           <div className="flex flex-row items-center justify-between gap-8">
             {links.map((link, idx) => (
-              <a key={idx} className="text-sm font-[600] text-neutral-400">
+              <a key={idx} className="text-sm font-[600] text-neutral-400 cursor-pointer ">
                 {link.name}
               </a>
             ))}

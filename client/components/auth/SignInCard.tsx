@@ -1,27 +1,52 @@
 "use client";
+import { AxiosError } from "axios";
 import React, { useState } from "react";
+import toast from "react-hot-toast";
+import { api } from "@/lib/axios";
+import { LoginResponse } from "@/types/auth";
 
 function SignInCard() {
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
 
-  const passwordStrengthLabel = ["poor", "bad", "Okayish", "Good"];
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
 
-  // Password strength indicator
-  const getPasswordStrength = (password: string) => {
-    if (password.length === 0) return 0;
-    if (password.length < 4) return 1;
-    if (password.length < 6) return 2;
-    if (password.length < 8) return 3;
-    if (password.length < 10) return 4;
-    return 5;
-  };
+      try{
+          const response = await api.post<LoginResponse>("/auth/login", {"email":email,"password":password})
+          toast.success("Loggedin successfully")
+          console.log(response.data)
+          
 
-  const passwordStrength = getPasswordStrength(password);
+      }catch(err){
+
+        if(err instanceof AxiosError){
+          if(err.request){
+            toast.error("Unexpected error occured.")
+          }
+
+          if(err.response){
+            if(err.response.status === 400){
+              toast.error("Invalid Details.")
+            }
+            else if(err.response.status === 409){
+              toast.error("User already exists.")
+            }
+            else if(err.response.status === 500){
+              toast.error("Internal server error.")
+            }else{
+              toast.error(err.response.data || "Something went wrong")
+            }
+          }
+        }else{
+          toast.error("Unexpected error occured.")
+        }
+      }
+  }
+
+
+
 
   return (
     <div className="mx-4 w-full max-w-md">
@@ -34,11 +59,11 @@ function SignInCard() {
         </div>
 
         <div className="flex items-center justify-center">
-          <p className="text-written text-2xl font-[500]">Create Account</p>
+          <p className="text-written text-2xl font-[500]">Welcome Back</p>
         </div>
 
         {/* Form */}
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={onSubmit}>
           {/* Email Field */}
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-300">

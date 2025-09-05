@@ -22,6 +22,7 @@ func main() {
 
     authHandler := handlers.NewAuthHandler(db)
 	orderHandler := handlers.NewOrderHandler(Broker)
+	userHandler := handlers.NewUserHandler(db)
 	
 
 	router := gin.Default()
@@ -49,6 +50,8 @@ func main() {
 	
 	{
 		protected.POST("/order", orderHandler.PlaceOrder)
+		protected.POST("/user/me"), userHandler.GetUser)
+		
 	}
 
 	log.Println("API Gateway is running on port :8080")

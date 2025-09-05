@@ -1,11 +1,13 @@
 package handlers
 
 import (
-	"gorm.io/gorm"
-	"github.com/gin-gonic/gin"
-	"github.com/KshitijBhardwaj18/Orbix/services/api-gateway/utils"
-    "github.com/KshitijBhardwaj18/Orbix/shared/models"
+	
 	"log"
+	"errors"
+	"github.com/KshitijBhardwaj18/Orbix/services/api-gateway/utils"
+	"github.com/KshitijBhardwaj18/Orbix/shared/models"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
@@ -22,6 +24,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required,min=8"`
 	}
+
+	
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -41,6 +45,10 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	if err := h.db.Create(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			c.JSON(409, gin.H{"error": "User already exists"})
+			return
+		}
 		log.Printf("Database error creating user: %v", err)
 		c.JSON(500, gin.H{"error": "Internal server error"})
 		return
