@@ -1,6 +1,26 @@
+"use client"
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 function Navbar() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        router.push("/signin");
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
   const links = [
     {
       name: "Spot",
@@ -23,13 +43,18 @@ function Navbar() {
     <div className="bg-secondary w-full">
       <div className="flex flex-row items-center justify-between p-2 px-4">
         <div className="flex flex-row gap-10">
-          <div className="flex items-center justify-center cursor-pointer">
-            <img alt="logo" src="./logo.png" className="mt-1 size-8 "></img>
-            <p className="text-center font-bold text-white cursor-pointer">Orbix</p>
+          <div className="flex cursor-pointer items-center justify-center">
+            <img alt="logo" src="./logo.png" className="mt-1 size-8"></img>
+            <p className="cursor-pointer text-center font-bold text-white">
+              Orbix
+            </p>
           </div>
           <div className="flex flex-row items-center justify-between gap-8">
             {links.map((link, idx) => (
-              <a key={idx} className="text-sm font-[600] text-neutral-400 cursor-pointer ">
+              <a
+                key={idx}
+                className="cursor-pointer text-sm font-[600] text-neutral-400"
+              >
                 {link.name}
               </a>
             ))}
@@ -68,18 +93,12 @@ function Navbar() {
           </div>
         </div>
         <div className="flex flex-row gap-5">
-        <Link href="/signup">
-
-          <button className="cursor-pointer rounded-lg bg-green-800 p-[0.3rem] px-2 text-sm font-[600] text-green-400 hover:bg-green-900" >
-            <div className="flex items-center justify-center">Sign Up</div>
+          <button
+            onClick={handleLogout}
+            className="cursor-pointer rounded-lg bg-red-800 p-[0.3rem] px-2 text-sm font-[600] text-red-400 hover:bg-red-900"
+          >
+            <div className="flex items-center justify-center">Logout</div>
           </button>
-        </Link> 
-        <Link href="/signin">
-        <button className="cursor-pointer rounded-lg bg-sky-900 p-[0.3rem] px-2 text-sm font-[600] text-sky-400 hover:bg-sky-950">
-            <div className="flex items-center justify-center">Sign In</div>
-          </button>
-        </Link> 
-         
         </div>
       </div>
     </div>

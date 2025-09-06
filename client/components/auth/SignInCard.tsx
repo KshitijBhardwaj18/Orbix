@@ -1,21 +1,26 @@
 "use client";
-import { AxiosError } from "axios";
+import axios, { AxiosError } from "axios";
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { api } from "@/lib/axios";
 import { LoginResponse } from "@/types/auth";
+import { useRouter } from "next/navigation";
 
 function SignInCard() {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
 
+  const router = useRouter();
+
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
       try{
           const response = await api.post<LoginResponse>("/auth/login", {"email":email,"password":password})
+          router.push("/home")
           toast.success("Loggedin successfully")
+          
           console.log(response.data)
           
 
