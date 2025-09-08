@@ -14,53 +14,41 @@ function SignInCard() {
   const router = useRouter();
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
+    e.preventDefault();
 
-      try{
-          const response = await api.post<LoginResponse>("/auth/login", {"email":email,"password":password})
-          router.push("/home")
-          toast.success("Loggedin successfully")
-          
-          console.log(response.data)
-          
+    try {
+      const response = await api.post<LoginResponse>("/auth/login", {
+        email: email,
+        password: password,
+      });
+      router.push("/home");
+      toast.success("Loggedin successfully");
 
-      }catch(err){
-
-        if(err instanceof AxiosError){
-          if(err.request){
-            toast.error("Unexpected error occured.")
+      console.log(response.data);
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        if (err.response) {
+          if (err.response.status === 401) {
+            toast.error("Invalid Details.");
+          } else if (err.response.status === 400) {
+            toast.error("Something went wrong");
+          } else if (err.response.status === 500) {
+            toast.error("Internal server error.");
           }
-
-          if(err.response){
-            if(err.response.status === 400){
-              toast.error("Invalid Details.")
-            }
-            else if(err.response.status === 409){
-              toast.error("User already exists.")
-            }
-            else if(err.response.status === 500){
-              toast.error("Internal server error.")
-            }else{
-              toast.error(err.response.data || "Something went wrong")
-            }
-          }
-        }else{
-          toast.error("Unexpected error occured.")
         }
+      } else {
+        toast.error("Unexpected error occured.");
       }
-  }
-
-
-
+    }
+  };
 
   return (
     <div className="mx-4 w-full max-w-md">
       <div className="bg-primary rounded-2xl border-[0.5px] border-neutral-800 p-8 shadow-2xl">
         {/* Header */}
 
-        <div className="mr-8 flex items-center justify-center ml-4">
+        <div className="mr-8 ml-4 flex items-center justify-center">
           <img alt="logo" src="./logo.png" className="mt-1 size-20"></img>
-    
         </div>
 
         <div className="flex items-center justify-center">
@@ -140,11 +128,9 @@ function SignInCard() {
             </div>
           </div>
 
-         
-
           <button
             type="submit"
-            className="w-full rounded-xl bg-gray-300 px-4 py-3 font-semibold text-gray-800 transition-colors hover:bg-gray-200 cursor-pointer"
+            className="w-full cursor-pointer rounded-xl bg-gray-300 px-4 py-3 font-semibold text-gray-800 transition-colors hover:bg-gray-200"
           >
             Sign In
           </button>

@@ -112,5 +112,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	
 }
 
+func(h *AuthHandler) Logout(c *gin.Context) {
+	c.SetCookie("authToken",
+		"",
+		-1,
+		"/",
+		"",
+		false,
+		true,)
+
+	c.JSON(200, gin.H{"message": "logged Out"})
+}
+
 
 

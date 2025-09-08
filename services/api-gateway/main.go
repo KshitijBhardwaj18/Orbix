@@ -41,7 +41,7 @@ func main() {
 	{
 		 public.POST("/auth/register", authHandler.Register)
 		 public.POST("/auth/login", authHandler.Login)
-		// public.GET("/health", healthHandler)
+		 public.POST("/auth/logout", authHandler.Logout)
 	}
 
 	protected := router.Group("/api/v1")
@@ -50,7 +50,7 @@ func main() {
 	
 	{
 		protected.POST("/order", orderHandler.PlaceOrder)
-		protected.POST("/user/me"), userHandler.GetUser)
+		protected.GET("/user/me", userHandler.GetUser)
 		
 	}
 

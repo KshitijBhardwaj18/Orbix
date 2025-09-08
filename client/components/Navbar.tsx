@@ -1,26 +1,9 @@
-"use client"
+"use client";
 import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-
+import { useAuth } from "@/contexts/AuthContext";
 function Navbar() {
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      const response = await fetch("http://localhost:8080/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        router.push("/signin");
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
+  const { user, loading, isAuthenticated, logout } = useAuth();
   const links = [
     {
       name: "Spot",
@@ -92,14 +75,26 @@ function Navbar() {
             </button>
           </div>
         </div>
-        <div className="flex flex-row gap-5">
-          <button
-            onClick={handleLogout}
-            className="cursor-pointer rounded-lg bg-red-800 p-[0.3rem] px-2 text-sm font-[600] text-red-400 hover:bg-red-900"
-          >
-            <div className="flex items-center justify-center">Logout</div>
+        {isAuthenticated ? (
+          <button className="cursor-pointer rounded-lg bg-green-800 p-[0.3rem] px-2 text-sm font-[600] text-green-400 hover:bg-green-900">
+            <div className="flex items-center justify-center" onClick={logout}>
+              Log Out
+            </div>
           </button>
-        </div>
+        ) : (
+          <div className="flex flex-row gap-5">
+            <Link href="/signup">
+              <button className="cursor-pointer rounded-lg bg-green-800 p-[0.3rem] px-2 text-sm font-[600] text-green-400 hover:bg-green-900">
+                <div className="flex items-center justify-center">Sign Up</div>
+              </button>
+            </Link>
+            <Link href="/signin">
+              <button className="cursor-pointer rounded-lg bg-sky-900 p-[0.3rem] px-2 text-sm font-[600] text-sky-400 hover:bg-sky-950">
+                <div className="flex items-center justify-center">Sign In</div>
+              </button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
