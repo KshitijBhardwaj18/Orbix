@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"log"
-
+	"time"
 	"github.com/KshitijBhardwaj18/Orbix/shared/broker"
 	"github.com/KshitijBhardwaj18/Orbix/shared/messages"
 	"github.com/KshitijBhardwaj18/Orbix/shared/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"github.com/KshitijBhardwaj18/Orbix/services/api-gateway/types"
 )
 
 type OrderHandler struct {
@@ -72,11 +73,27 @@ func (h *OrderHandler) PlaceOrder(c *gin.Context) {
 	}
 
 	response, err := h.broker.CreateOrder(orderReq)
+
+	orderResponse := types.OrderResponse{
+        ID:                response.ID.String(),
+        MarketID:          response.MarketID,
+        Side:              string(response.Side),
+        Type:              string(response.Type),
+        Quantity:          response.Quantity.String(),
+        FilledQuantity:    response.FilledQuantity.String(),
+        RemainingQuantity: response.RemainingQuantity.String(),
+        Status:            string(response.Status),
+        CreatedAt:         response.CreatedAt.Format(time.RFC3339),
+    }
+    
+
+
+
 	if err != nil {
 		log.Printf("error: %v", err)
 		c.JSON(500, gin.H{"error": "Failed to process order"})
 		return
 	}
 
-	c.JSON(201, response)
+	c.JSON(201, orderResponse)
 }

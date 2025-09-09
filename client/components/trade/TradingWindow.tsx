@@ -16,7 +16,7 @@ const Trade = ({ ticker }: { ticker: string }) => {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    s;
+
     console.log({ orderType, price, quantity });
   };
 
@@ -115,7 +115,7 @@ const Trade = ({ ticker }: { ticker: string }) => {
                 className={cn(
                   "cursor-pointer flex items-center justify-center flex-1 bg-white text-black py-2  shadow-xl rounded-xl",
                   orderType == "buy" && "hover:bg-green-400 hover:text-white",
-                  orderType == "sell" && "hover:bg-red-500 hover:text-white"
+                  orderType == "sell" && "hover:bg-red-500 hover:text-white",
                 )}
               >
                 Place Order
