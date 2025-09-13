@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"encoding/json"
+	"log"
+
 	"github.com/KshitijBhardwaj18/Orbix/services/engine/orderbook"
 	"github.com/KshitijBhardwaj18/Orbix/shared/broker"
 	"github.com/KshitijBhardwaj18/Orbix/shared/messages"
@@ -12,11 +14,23 @@ import (
 	"github.com/KshitijBhardwaj18/Orbix/shared/utils"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"log"
 )
 
 type UserBalances map[string]models.Balance
 type BalanceCache map[uuid.UUID]UserBalances
+
+// OrderbookInfo represents individual orderbook data
+type OrderbookInfo struct {
+	Ticker   string `json:"ticker"`
+	BidCount int    `json:"bid_count"`
+	AskCount int    `json:"ask_count"`
+}
+
+// OrderbooksResponse represents the complete orderbooks response
+type OrderbooksResponse struct {
+	TotalOrderbooks int             `json:"total_orderbooks"`
+	Orderbooks      []OrderbookInfo `json:"orderbooks"`
+}
 
 type Engine struct {
 	Orderbooks []*orderbook.OrderBook
@@ -53,7 +67,17 @@ func (e *Engine) Consume(message *messages.MessageFromAPI) {
 		}
 
 		e.Broker.PublishToClient("ORDER_UPDATE", message.ClientId, order)
+
+		
+
+	case "LOG_ORDERBOOK":
+		response := e.LogOrderbooks()
+		e.Broker.PublishToClient("ORDERBOOK_LOG", message.ClientId, response)
+
 	}
+
+
+
 }
 
 func (e *Engine) CreateOrder(orderRequest messages.OrderRequest) (order *models.Order, err error) {
@@ -80,7 +104,8 @@ func (e *Engine) CreateOrder(orderRequest messages.OrderRequest) (order *models.
 
 	order = orderbook.AddOrder(order)
 
-	e.LogOrderbooks()
+	// Log orderbooks for debugging (you might want to remove this in production)
+	_ = e.LogOrderbooks()
 
 	return order, nil
 }
@@ -102,10 +127,19 @@ func (e *Engine) FindOrCreateOrderbook(marketID string) (orderBook *orderbook.Or
 
 }
 
-func (e *Engine) LogOrderbooks() {
-	fmt.Printf("Total orderbooks: %d\n", len(e.Orderbooks))
+func (e *Engine) LogOrderbooks() *OrderbooksResponse {
+	orderbooks := make([]OrderbookInfo, len(e.Orderbooks))
+	
 	for i, ob := range e.Orderbooks {
-		fmt.Printf("Orderbook %d: %s (Bids: %d, Asks: %d)\n",
-			i, ob.GetTicker(), len(ob.Bids), len(ob.Asks))
+		orderbooks[i] = OrderbookInfo{
+			Ticker:   ob.GetTicker(),
+			BidCount: len(ob.Bids),
+			AskCount: len(ob.Asks),
+		}
+	}
+	
+	return &OrderbooksResponse{
+		TotalOrderbooks: len(e.Orderbooks),
+		Orderbooks:      orderbooks,
 	}
 }

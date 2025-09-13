@@ -3,13 +3,14 @@ package handlers
 import (
 	"log"
 	"time"
+
+	"github.com/KshitijBhardwaj18/Orbix/services/api-gateway/types"
 	"github.com/KshitijBhardwaj18/Orbix/shared/broker"
 	"github.com/KshitijBhardwaj18/Orbix/shared/messages"
 	"github.com/KshitijBhardwaj18/Orbix/shared/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"github.com/KshitijBhardwaj18/Orbix/services/api-gateway/types"
 )
 
 type OrderHandler struct {
@@ -96,4 +97,16 @@ func (h *OrderHandler) PlaceOrder(c *gin.Context) {
 	}
 
 	c.JSON(201, orderResponse)
+}
+
+func (h *OrderHandler) LogOrderbooks(c *gin.Context) {
+	response, err := h.broker.LogOrderbooks()
+
+	if err != nil {
+		log.Printf("error logging orderbooks: %v", err)
+		c.JSON(500, gin.H{"error": "Failed to retrieve orderbooks"})
+		return
+	}
+
+	c.JSON(200, response)
 }

@@ -41,6 +41,51 @@ func (r *Broker) CreateOrder(order *messages.OrderRequest) (*models.Order, error
 	}
 }
 
+// OrderbookInfo represents individual orderbook data (same as in engine)
+type OrderbookInfo struct {
+	Ticker   string `json:"ticker"`
+	BidCount int    `json:"bid_count"`
+	AskCount int    `json:"ask_count"`
+}
+
+// OrderbooksResponse represents the complete orderbooks response (same as in engine)  
+type OrderbooksResponse struct {
+	TotalOrderbooks int             `json:"total_orderbooks"`
+	Orderbooks      []OrderbookInfo `json:"orderbooks"`
+}
+
+func (r *Broker) LogOrderbooks() (*OrderbooksResponse, error){
+	clientId := uuid.New().String()
+	
+	pubsub := r.rdb.Subscribe(r.ctx,clientId)
+	defer pubsub.Close()
+
+	request := &messages.MessageFromAPI{
+		ClientId: clientId,
+		MessageType: "LOG_ORDERBOOK",
+	}
+
+	requestData, _ := json.Marshal(request)
+
+	err := r.rdb.LPush(r.ctx,"engine_requests",requestData).Err()
+
+	if err != nil {
+		return nil, err
+	}
+
+	select {
+	case msg := <-pubsub.Channel():
+		var response OrderbooksResponse
+		err := json.Unmarshal([]byte(msg.Payload), &response)
+		return &response, err
+
+	case <-time.After(5 * time.Second):
+		return nil, errors.New("engine timeout")
+	}
+}
+
+
+
 func (r *Broker) BRPop(queueName string) (*messages.MessageFromAPI, error) {
 	result, err := r.rdb.BRPop(r.ctx, 0, queueName).Result()
 
@@ -67,3 +112,5 @@ func (r *Broker) PublishToClient(Type string, clientID string, response interfac
 
 	return r.rdb.Publish(r.ctx, clientID, data).Err()
 }
+
+

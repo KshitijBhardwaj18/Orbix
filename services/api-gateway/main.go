@@ -51,6 +51,7 @@ func main() {
 	{
 		protected.POST("/order", orderHandler.PlaceOrder)
 		protected.GET("/user/me", userHandler.GetUser)
+		protected.GET("/logorderbooks",orderHandler.LogOrderbooks)
 		
 	}
 

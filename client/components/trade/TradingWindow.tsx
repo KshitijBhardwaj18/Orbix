@@ -9,7 +9,7 @@ interface TradeProps {
 }
 
 const Trade = ({ ticker }: { ticker: string }) => {
-  const [orderType, setOrderType] = useState<string>("buy");
+  const [orderType, setOrderType] = useState<string>("BUY");
   const [price, setPrice] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(0);
   const [orderValue, setOrderValue] = useState<number>(0);
@@ -27,18 +27,18 @@ const Trade = ({ ticker }: { ticker: string }) => {
           <button
             className={cn(
               "flex items-center justify-center p-4  rounded-xl   flex-1 hover:text-green-400",
-              orderType === "buy" && "bg-[#232d2c] text-green-400",
+              orderType === "BUY" && "bg-[#232d2c] text-green-400",
             )}
-            onClick={() => setOrderType("buy")}
+            onClick={() => setOrderType("BUY")}
           >
             Buy
           </button>
           <button
             className={cn(
-              orderType === "sell" && "bg-[#39242b] text-red-600  ",
+              orderType === "SELL" && "bg-[#39242b] text-red-600  ",
               "flex items-center justify-center p-4 rounded-xl flex-1 hover:text-red-400",
             )}
-            onClick={() => setOrderType("sell")}
+            onClick={() => setOrderType("SELL")}
           >
             {" "}
             Sell
@@ -114,8 +114,8 @@ const Trade = ({ ticker }: { ticker: string }) => {
               <button
                 className={cn(
                   "cursor-pointer flex items-center justify-center flex-1 bg-white text-black py-2  shadow-xl rounded-xl",
-                  orderType == "buy" && "hover:bg-green-400 hover:text-white",
-                  orderType == "sell" && "hover:bg-red-500 hover:text-white",
+                  orderType == "BUY" && "hover:bg-green-400 hover:text-white",
+                  orderType == "SELL" && "hover:bg-red-500 hover:text-white",
                 )}
               >
                 Place Order
