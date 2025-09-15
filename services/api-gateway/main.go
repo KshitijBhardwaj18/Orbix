@@ -23,6 +23,7 @@ func main() {
     authHandler := handlers.NewAuthHandler(db)
 	orderHandler := handlers.NewOrderHandler(Broker)
 	userHandler := handlers.NewUserHandler(db)
+	marketHandler := handlers.NewMarketHandler(Broker)
 	
 
 	router := gin.Default()
@@ -52,6 +53,7 @@ func main() {
 		protected.POST("/order", orderHandler.PlaceOrder)
 		protected.GET("/user/me", userHandler.GetUser)
 		protected.GET("/logorderbooks",orderHandler.LogOrderbooks)
+		protected.GET("/market/getDepth/:market",marketHandler.GetDepth)
 		
 	}
 

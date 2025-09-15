@@ -84,6 +84,43 @@ func (r *Broker) LogOrderbooks() (*OrderbooksResponse, error){
 	}
 }
 
+type DepthResponse struct {
+    Market string     `json:"market"`
+    Bids   [][2]string `json:"bids"`  // [["price", "quantity"]] as strings
+    Asks   [][2]string `json:"asks"`  // [["price", "quantity"]] as strings
+}
+
+func (r *Broker) GetDepth(req *messages.GetDepthRequest) (*DepthResponse, error) {
+	clientId := uuid.New().String()
+
+	pubsub := r.rdb.Subscribe(r.ctx,clientId)
+	defer pubsub.Close()
+
+	request := &messages.MessageFromAPI{
+		ClientId: clientId,
+		MessageType: "GET_DEPTH",
+		Data: req,
+	}
+
+	requestData, _ := json.Marshal(request)
+
+	err := r.rdb.LPush(r.ctx, "engine_requests",requestData).Err()
+
+	if err != nil {
+		return nil, err
+	}
+
+	select {
+	case msg := <-pubsub.Channel():
+		var response DepthResponse
+		err := json.Unmarshal([]byte(msg.Payload), &response)
+		return &response, err
+
+	case <-time.After(5 * time.Second):
+		return nil, errors.New("engine_timeout")
+	}
+}
+
 
 
 func (r *Broker) BRPop(queueName string) (*messages.MessageFromAPI, error) {

@@ -55,21 +55,31 @@ type OrderBookLevel struct {
 	Quantity decimal.Decimal  `json:"quantity"`
 }
 
-type DepthLevel struct {
-	Price    decimal.Decimal `json:"price"`
-	Quantity decimal.Decimal `json:"quantity"`
-	Total    decimal.Decimal `json:"total"`
-}
+// type DepthLevel struct {
+// 	Price    decimal.Decimal `json:"price"`
+// 	Quantity decimal.Decimal `json:"quantity"`
+// 	Total    decimal.Decimal `json:"total"`
+// }
 
-type MarketDepth struct {
-	Symbol    string       `json:"symbol"`
-	Bids      []DepthLevel `json:"bids"`
-	Asks      []DepthLevel `json:"asks"`
-	Timestamp time.Time    `json:"timestamp"`
+// type MarketDepth struct {
+// 	Symbol    string       `json:"symbol"`
+// 	Bids      []DepthLevel `json:"bids"`
+// 	Asks      []DepthLevel `json:"asks"`
+// 	Timestamp time.Time    `json:"timestamp"`
+// }
+
+type DepthResponse struct {
+    Market string     `json:"market"`
+    Bids   [][2]string `json:"bids"`  // [["price", "quantity"]] as strings
+    Asks   [][2]string `json:"asks"`  // [["price", "quantity"]] as strings
 }
 
 type MessageFromAPI struct {
 	ClientId    string      `json:"clientId"`
 	MessageType string      `json:"messageType"`
 	Data        interface{} `json:"data"`
+}
+
+type GetDepthRequest struct {
+	Market string `json:"market"`
 }

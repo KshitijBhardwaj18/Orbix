@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/KshitijBhardwaj18/Orbix/shared/messages"
 	"github.com/KshitijBhardwaj18/Orbix/shared/models"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
@@ -233,6 +234,40 @@ func (o *OrderBook) GetDepth(maxLevels int) *MarketDepth {
 		Bids:      bids,
 		Asks:      asks,
 		Timestamp: time.Now(),
+	}
+}
+
+type DepthResponse struct {
+	Market string     `json:"market"`
+	Bids   [][2]string `json:"bids"`
+	Asks   [][2]string `json:"asks"`
+}
+
+func (o *OrderBook) GetDepthResponse(maxLevels int) *messages.DepthResponse {
+	
+	marketDepth := o.GetDepth(maxLevels)
+	
+	
+	bids := make([][2]string, len(marketDepth.Bids))
+	for i, bid := range marketDepth.Bids {
+		bids[i] = [2]string{
+			bid.Price.String(),
+			bid.Quantity.String(),
+		}
+	}
+	
+	asks := make([][2]string, len(marketDepth.Asks))
+	for i, ask := range marketDepth.Asks {
+		asks[i] = [2]string{
+			ask.Price.String(),
+			ask.Quantity.String(),
+		}
+	}
+	
+	return &messages.DepthResponse{
+		Market: marketDepth.Symbol,
+		Bids:   bids,
+		Asks:   asks,
 	}
 }
 
