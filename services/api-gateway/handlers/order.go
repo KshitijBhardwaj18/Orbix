@@ -76,19 +76,20 @@ func (h *OrderHandler) PlaceOrder(c *gin.Context) {
 	response, err := h.broker.CreateOrder(orderReq)
 
 	orderResponse := types.OrderResponse{
-        ID:                response.ID.String(),
-        MarketID:          response.MarketID,
-        Side:              string(response.Side),
-        Type:              string(response.Type),
-        Quantity:          response.Quantity.String(),
-        FilledQuantity:    response.FilledQuantity.String(),
-        RemainingQuantity: response.RemainingQuantity.String(),
-        Status:            string(response.Status),
-        CreatedAt:         response.CreatedAt.Format(time.RFC3339),
-    }
-    
+		ID:                response.ID.String(),
+		MarketID:          response.MarketID,
+		Side:              string(response.Side),
+		Type:              string(response.Type),
+		Quantity:          response.Quantity.String(),
+		FilledQuantity:    response.FilledQuantity.String(),
+		RemainingQuantity: response.RemainingQuantity.String(),
+		Status:            string(response.Status),
+		CreatedAt:         response.CreatedAt.Format(time.RFC3339),
+	}
 
-
+	if response.Price != nil {
+		orderResponse.Price = response.Price.String()
+	}
 
 	if err != nil {
 		log.Printf("error: %v", err)
@@ -97,6 +98,56 @@ func (h *OrderHandler) PlaceOrder(c *gin.Context) {
 	}
 
 	c.JSON(201, orderResponse)
+}
+
+func (h *OrderHandler) GetOpenOrders(c *gin.Context) {
+	userIDstr := c.GetString("user_id")
+	userID, err := uuid.Parse(userIDstr)
+
+	if err != nil {
+		c.JSON(401, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Get market parameter (optional - if provided, filter by market)
+	market := c.Query("market")
+
+	req := &messages.GetOpenOrdersRequest{
+		UserID: userID,
+		Market: market, // Empty string means all markets
+	}
+
+	response, err := h.broker.GetOpenOrders(req)
+
+	if err != nil {
+		log.Printf("error getting open orders: %v", err)
+		c.JSON(500, gin.H{"error": "Failed to retrieve open orders"})
+		return
+	}
+
+	// Convert to API response format
+	orderResponses := make([]types.OrderResponse, len(response))
+	for i, order := range response {
+		orderResponses[i] = types.OrderResponse{
+			ID:                order.ID.String(),
+			MarketID:          order.MarketID,
+			Side:              string(order.Side),
+			Type:              string(order.Type),
+			Quantity:          order.Quantity.String(),
+			FilledQuantity:    order.FilledQuantity.String(),
+			RemainingQuantity: order.RemainingQuantity.String(),
+			Status:            string(order.Status),
+			CreatedAt:         order.CreatedAt.Format(time.RFC3339),
+		}
+		if order.Price != nil {
+			orderResponses[i].Price = order.Price.String()
+		}
+	}
+
+	c.JSON(200, gin.H{
+		"orders": orderResponses,
+		"count":  len(orderResponses),
+	})
 }
 
 func (h *OrderHandler) LogOrderbooks(c *gin.Context) {

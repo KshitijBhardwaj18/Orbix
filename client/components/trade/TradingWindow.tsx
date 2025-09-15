@@ -3,6 +3,9 @@
 import React from "react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
+import { api } from "@/lib/axios";
+import { PlaceOrderRequest, PlaceOrderResponse } from "@/types/order";
+import toast from "react-hot-toast";
 
 interface TradeProps {
   tricker: string;
@@ -10,15 +13,54 @@ interface TradeProps {
 
 const Trade = ({ ticker }: { ticker: string }) => {
   const [orderType, setOrderType] = useState<string>("BUY");
-  const [price, setPrice] = useState<number>(0);
-  const [quantity, setQuantity] = useState<number>(0);
-  const [orderValue, setOrderValue] = useState<number>(0);
+  const [price, setPrice] = useState<string>(""); // Changed to string with empty default
+  const [quantity, setQuantity] = useState<string>(""); // Changed to string with empty default
+  const [orderValue, setOrderValue] = useState<string>(""); // Changed to string with empty default
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log({ orderType, price, quantity });
+    // Validate inputs
+    if (!price || !quantity) {
+      console.error("Price and quantity are required");
+      return;
+    }
+
+    const request: PlaceOrderRequest = {
+      "market-id": ticker,
+      side: orderType,
+      price: price,
+      quantity: quantity,
+      type: "LIMIT",
+    };
+
+    try {
+      const response = await api.post<PlaceOrderResponse>("/order", request);
+
+      console.log(response);
+
+      // Reset form after successful submission
+      setPrice("");
+      setQuantity("");
+      setOrderValue("");
+      toast.success("Order Placed");
+    } catch (err) {
+      console.log(err);
+    }
   };
+
+  // Calculate order value when price or quantity changes
+  React.useEffect(() => {
+    if (price && quantity) {
+      const priceNum = parseFloat(price);
+      const quantityNum = parseFloat(quantity);
+      if (!isNaN(priceNum) && !isNaN(quantityNum)) {
+        setOrderValue((priceNum * quantityNum).toString());
+      }
+    } else {
+      setOrderValue("");
+    }
+  }, [price, quantity]);
 
   return (
     <div className="w-full  bg-primary rounded-xl p-4">
@@ -63,7 +105,7 @@ const Trade = ({ ticker }: { ticker: string }) => {
                   [&::-webkit-inner-spin-button]:appearance-none rounded-xl"
                   placeholder="0"
                   value={price}
-                  onChange={(e) => setPrice(Number(e.target.value))}
+                  onChange={(e) => setPrice(e.target.value)}
                 ></input>
               </div>
             </div>
@@ -84,7 +126,7 @@ const Trade = ({ ticker }: { ticker: string }) => {
                   [&::-webkit-inner-spin-button]:appearance-none rounded-xl"
                   placeholder="0"
                   value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  onChange={(e) => setQuantity(e.target.value)}
                 ></input>
               </div>
             </div>
@@ -105,7 +147,7 @@ const Trade = ({ ticker }: { ticker: string }) => {
                   [&::-webkit-inner-spin-button]:appearance-none rounded-xl"
                   placeholder="0"
                   value={orderValue}
-                  onChange={(e) => setOrderValue(Number(e.target.value))}
+                  readOnly // Make this read-only since it's calculated
                 ></input>
               </div>
             </div>
@@ -117,6 +159,7 @@ const Trade = ({ ticker }: { ticker: string }) => {
                   orderType == "BUY" && "hover:bg-green-400 hover:text-white",
                   orderType == "SELL" && "hover:bg-red-500 hover:text-white",
                 )}
+                type="submit"
               >
                 Place Order
               </button>

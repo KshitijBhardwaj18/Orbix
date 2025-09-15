@@ -3,13 +3,14 @@ package main
 import (
 	"log"
 
+	"time"
+
 	"github.com/KshitijBhardwaj18/Orbix/services/api-gateway/config"
 	"github.com/KshitijBhardwaj18/Orbix/services/api-gateway/handlers"
 	"github.com/KshitijBhardwaj18/Orbix/services/api-gateway/middleware"
 	"github.com/KshitijBhardwaj18/Orbix/shared/broker"
-	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/cors"
-	"time"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -51,9 +52,10 @@ func main() {
 	
 	{
 		protected.POST("/order", orderHandler.PlaceOrder)
+		protected.GET("/orders/open", orderHandler.GetOpenOrders)
 		protected.GET("/user/me", userHandler.GetUser)
 		protected.GET("/logorderbooks",orderHandler.LogOrderbooks)
-		protected.GET("/market/getDepth/:market",marketHandler.GetDepth)
+		protected.GET("/market/getdepth/:market",marketHandler.GetDepth)
 		
 	}
 

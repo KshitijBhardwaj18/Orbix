@@ -84,15 +84,16 @@ func (r *Broker) LogOrderbooks() (*OrderbooksResponse, error){
 	}
 }
 
+// DepthResponse represents the complete orderbooks response (same as in engine)  
 type DepthResponse struct {
-    Market string     `json:"market"`
-    Bids   [][2]string `json:"bids"`  // [["price", "quantity"]] as strings
-    Asks   [][2]string `json:"asks"`  // [["price", "quantity"]] as strings
+	Market string     `json:"market"`
+	Bids   [][2]string `json:"bids"`
+	Asks   [][2]string `json:"asks"`
 }
 
-func (r *Broker) GetDepth(req *messages.GetDepthRequest) (*DepthResponse, error) {
+func (r *Broker) GetDepth(req *messages.GetDepthRequest) (*DepthResponse, error){
 	clientId := uuid.New().String()
-
+	
 	pubsub := r.rdb.Subscribe(r.ctx,clientId)
 	defer pubsub.Close()
 
@@ -104,7 +105,7 @@ func (r *Broker) GetDepth(req *messages.GetDepthRequest) (*DepthResponse, error)
 
 	requestData, _ := json.Marshal(request)
 
-	err := r.rdb.LPush(r.ctx, "engine_requests",requestData).Err()
+	err := r.rdb.LPush(r.ctx,"engine_requests",requestData).Err()
 
 	if err != nil {
 		return nil, err
@@ -117,11 +118,39 @@ func (r *Broker) GetDepth(req *messages.GetDepthRequest) (*DepthResponse, error)
 		return &response, err
 
 	case <-time.After(5 * time.Second):
-		return nil, errors.New("engine_timeout")
+		return nil, errors.New("engine timeout")
 	}
 }
 
+func (r *Broker) GetOpenOrders(req *messages.GetOpenOrdersRequest) ([]models.Order, error) {
+	clientId := uuid.New().String()
+	
+	pubsub := r.rdb.Subscribe(r.ctx, clientId)
+	defer pubsub.Close()
 
+	request := &messages.MessageFromAPI{
+		ClientId:    clientId,
+		MessageType: "GET_OPEN_ORDERS",
+		Data:        req,
+	}
+
+	requestData, _ := json.Marshal(request)
+	err := r.rdb.LPush(r.ctx, "engine_requests", requestData).Err()
+
+	if err != nil {
+		return nil, err
+	}
+
+	select {
+	case msg := <-pubsub.Channel():
+		var response []models.Order
+		err := json.Unmarshal([]byte(msg.Payload), &response)
+		return response, err
+
+	case <-time.After(5 * time.Second):
+		return nil, errors.New("engine timeout")
+	}
+}
 
 func (r *Broker) BRPop(queueName string) (*messages.MessageFromAPI, error) {
 	result, err := r.rdb.BRPop(r.ctx, 0, queueName).Result()
@@ -149,5 +178,3 @@ func (r *Broker) PublishToClient(Type string, clientID string, response interfac
 
 	return r.rdb.Publish(r.ctx, clientID, data).Err()
 }
-
-

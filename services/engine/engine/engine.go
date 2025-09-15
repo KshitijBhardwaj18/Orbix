@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -54,27 +55,27 @@ type MarketSeedData struct {
 	Depth     int     // Number of levels on each side
 }
 
-// Realistic market data for seeding
+// HIGH LIQUIDITY market data for realistic demo
 var MarketSeedingData = []MarketSeedData{
-	{AvailableMarkets[0], 111227.70, 0.0005, 10}, // BTC/USD
-	{AvailableMarkets[1], 4296.38, 0.0008, 10},   // ETH/USD
-	{AvailableMarkets[2], 1.0001, 0.0001, 8},     // USDT/USD
-	{AvailableMarkets[3], 207.27, 0.0012, 10},    // SOL/USD
-	{AvailableMarkets[4], 0.23229, 0.0015, 8},    // DOGE/USD
-	{AvailableMarkets[5], 22.427, 0.0010, 8},     // LINK/USD
-	{AvailableMarkets[6], 3.397, 0.0015, 8},      // SUI/USD
-	{AvailableMarkets[7], 0.00001255, 0.0020, 6}, // SHIB/USD
-	{AvailableMarkets[8], 3.572, 0.0015, 6},      // RENDER/USD
-	{AvailableMarkets[9], 0.29544, 0.0018, 6},    // SEI/USD
-	{AvailableMarkets[10], 0.9155, 0.0012, 6},    // ONDO/USD
-	{AvailableMarkets[11], 1.2728, 0.0015, 6},    // WLD/USD
-	{AvailableMarkets[12], 0.03131, 0.0025, 6},   // PENGU/USD
-	{AvailableMarkets[13], 0.00001001, 0.0020, 6}, // PEPE/USD
-	{AvailableMarkets[14], 4.322, 0.0015, 6},     // APT/USD
-	{AvailableMarkets[15], 0.2779, 0.0018, 6},    // POL/USD
-	{AvailableMarkets[16], 9.40, 0.0012, 6},      // UNI/USD
-	{AvailableMarkets[17], 0.765, 0.0015, 6},     // ENA/USD
-	{AvailableMarkets[18], 299.59, 0.0010, 8},    // AAVE/USD
+	{AvailableMarkets[0], 111227.70, 0.0002, 50}, // BTC/USD - 50 levels each side
+	{AvailableMarkets[1], 4296.38, 0.0003, 40},   // ETH/USD - 40 levels each side
+	{AvailableMarkets[2], 1.0001, 0.0001, 30},    // USDT/USD - 30 levels each side
+	{AvailableMarkets[3], 207.27, 0.0004, 35},    // SOL/USD - 35 levels each side
+	{AvailableMarkets[4], 0.23229, 0.0005, 25},   // DOGE/USD - 25 levels each side
+	{AvailableMarkets[5], 22.427, 0.0003, 30},    // LINK/USD - 30 levels each side
+	{AvailableMarkets[6], 3.397, 0.0004, 25},     // SUI/USD - 25 levels each side
+	{AvailableMarkets[7], 0.00001255, 0.0008, 20}, // SHIB/USD - 20 levels each side
+	{AvailableMarkets[8], 3.572, 0.0005, 20},     // RENDER/USD - 20 levels each side
+	{AvailableMarkets[9], 0.29544, 0.0006, 20},   // SEI/USD - 20 levels each side
+	{AvailableMarkets[10], 0.9155, 0.0004, 20},   // ONDO/USD - 20 levels each side
+	{AvailableMarkets[11], 1.2728, 0.0005, 20},   // WLD/USD - 20 levels each side
+	{AvailableMarkets[12], 0.03131, 0.0008, 15},  // PENGU/USD - 15 levels each side
+	{AvailableMarkets[13], 0.00001001, 0.0008, 15}, // PEPE/USD - 15 levels each side
+	{AvailableMarkets[14], 4.322, 0.0005, 20},    // APT/USD - 20 levels each side
+	{AvailableMarkets[15], 0.2779, 0.0006, 20},   // POL/USD - 20 levels each side
+	{AvailableMarkets[16], 9.40, 0.0004, 25},     // UNI/USD - 25 levels each side
+	{AvailableMarkets[17], 0.765, 0.0005, 20},    // ENA/USD - 20 levels each side
+	{AvailableMarkets[18], 299.59, 0.0003, 35},   // AAVE/USD - 35 levels each side
 }
 
 type Engine struct {
@@ -124,29 +125,32 @@ func (e *Engine) InitializeMarketOrderbooks() error {
 
 // SeedMarketsWithOrders creates realistic demo orders for all markets
 func (e *Engine) SeedMarketsWithOrders() error {
-	log.Printf("🌱 Seeding markets with demo orders...")
+	log.Printf("🌱 Seeding markets with HIGH LIQUIDITY demo orders...")
 
-	// Create a demo user ID for seeding orders
-	demoUserID := uuid.New()
-
-	for _, seedData := range MarketSeedingData {
-		err := e.seedMarketOrders(seedData, demoUserID)
-		if err != nil {
-			log.Printf("Failed to seed market %s: %v", seedData.Market.Ticker, err)
-			continue
-		}
-		log.Printf("✓ Seeded %s with %d bid/ask levels", seedData.Market.Ticker, seedData.Depth)
+	// Create multiple demo user IDs for variety
+	demoUsers := make([]uuid.UUID, 5)
+	for i := range demoUsers {
+		demoUsers[i] = uuid.New()
 	}
 
-	log.Printf("🎉 Market seeding completed! All markets ready for demo.")
+	totalOrders := 0
+	for _, seedData := range MarketSeedingData {
+		orders := e.seedMarketOrders(seedData, demoUsers)
+		totalOrders += orders
+		log.Printf("✓ Seeded %s with %d levels (%d total orders)", 
+			seedData.Market.Ticker, seedData.Depth, orders)
+	}
+
+	log.Printf("🎉 HIGH LIQUIDITY seeding completed! %d total orders across all markets.", totalOrders)
 	return nil
 }
 
 // seedMarketOrders creates realistic bid and ask orders for a specific market
-func (e *Engine) seedMarketOrders(seedData MarketSeedData, userID uuid.UUID) error {
+func (e *Engine) seedMarketOrders(seedData MarketSeedData, userIDs []uuid.UUID) int {
 	orderbook, err := e.FindOrCreateOrderbook(seedData.Market.Ticker)
 	if err != nil {
-		return err
+		log.Printf("Failed to seed market %s: %v", seedData.Market.Ticker, err)
+		return 0
 	}
 
 	basePrice := decimal.NewFromFloat(seedData.BasePrice)
@@ -157,101 +161,115 @@ func (e *Engine) seedMarketOrders(seedData MarketSeedData, userID uuid.UUID) err
 	bestBid := basePrice.Sub(spread.Div(decimal.NewFromInt(2)))
 	bestAsk := basePrice.Add(spread.Div(decimal.NewFromInt(2)))
 
-	// Create bid orders (buy orders below market price)
+	orderCount := 0
+
+	// Create bid orders (buy orders below market price) with HIGH LIQUIDITY
 	for i := 0; i < seedData.Depth; i++ {
-		// Price decreases as we go down the bid ladder
-		priceReduction := decimal.NewFromFloat(0.0005 + float64(i)*0.0002) // 0.05% to 0.25%
+		// Much smaller price steps for tighter liquidity
+		priceReduction := decimal.NewFromFloat(0.0001 + float64(i)*0.00005) // 0.01% to 0.26%
 		price := bestBid.Sub(basePrice.Mul(priceReduction))
 
-		// Generate realistic quantity (varies by market)
-		quantity := e.generateRealisticQuantity(seedData.Market.Ticker, price)
+		// Create 2-4 orders at each price level for deep liquidity
+		ordersAtLevel := 2 + (i % 3) // 2-4 orders per level
+		for j := 0; j < ordersAtLevel; j++ {
+			quantity := e.generateHighLiquidityQuantity(seedData.Market.Ticker, price, j)
+			userID := userIDs[j%len(userIDs)] // Rotate through users
 
-		bidOrder := &models.Order{
-			ID:                uuid.New(),
-			UserID:            userID,
-			MarketID:          seedData.Market.Ticker,
-			Side:              models.BUY,
-			Type:              models.LIMIT,
-			Quantity:          quantity,
-			Price:             &price,
-			FilledQuantity:    decimal.Zero,
-			RemainingQuantity: quantity,
-			Status:            models.PENDING,
-			CreatedAt:         time.Now().Add(-time.Duration(i) * time.Minute), // Stagger times
-			UpdatedAt:         time.Now(),
+			bidOrder := &models.Order{
+				ID:                uuid.New(),
+				UserID:            userID,
+				MarketID:          seedData.Market.Ticker,
+				Side:              models.BUY,
+				Type:              models.LIMIT,
+				Quantity:          quantity,
+				Price:             &price,
+				FilledQuantity:    decimal.Zero,
+				RemainingQuantity: quantity,
+				Status:            models.PENDING,
+				CreatedAt:         time.Now().Add(-time.Duration(i*10+j) * time.Second),
+				UpdatedAt:         time.Now(),
+			}
+
+			orderbook.AddOrder(bidOrder)
+			orderCount++
 		}
-
-		orderbook.AddOrder(bidOrder)
 	}
 
-	// Create ask orders (sell orders above market price)
+	// Create ask orders (sell orders above market price) with HIGH LIQUIDITY
 	for i := 0; i < seedData.Depth; i++ {
-		// Price increases as we go up the ask ladder
-		priceIncrease := decimal.NewFromFloat(0.0005 + float64(i)*0.0002) // 0.05% to 0.25%
+		// Much smaller price steps for tighter liquidity
+		priceIncrease := decimal.NewFromFloat(0.0001 + float64(i)*0.00005) // 0.01% to 0.26%
 		price := bestAsk.Add(basePrice.Mul(priceIncrease))
 
-		// Generate realistic quantity
-		quantity := e.generateRealisticQuantity(seedData.Market.Ticker, price)
+		// Create 2-4 orders at each price level for deep liquidity
+		ordersAtLevel := 2 + (i % 3) // 2-4 orders per level
+		for j := 0; j < ordersAtLevel; j++ {
+			quantity := e.generateHighLiquidityQuantity(seedData.Market.Ticker, price, j)
+			userID := userIDs[j%len(userIDs)] // Rotate through users
 
-		askOrder := &models.Order{
-			ID:                uuid.New(),
-			UserID:            userID,
-			MarketID:          seedData.Market.Ticker,
-			Side:              models.SELL,
-			Type:              models.LIMIT,
-			Quantity:          quantity,
-			Price:             &price,
-			FilledQuantity:    decimal.Zero,
-			RemainingQuantity: quantity,
-			Status:            models.PENDING,
-			CreatedAt:         time.Now().Add(-time.Duration(i) * time.Minute),
-			UpdatedAt:         time.Now(),
+			askOrder := &models.Order{
+				ID:                uuid.New(),
+				UserID:            userID,
+				MarketID:          seedData.Market.Ticker,
+				Side:              models.SELL,
+				Type:              models.LIMIT,
+				Quantity:          quantity,
+				Price:             &price,
+				FilledQuantity:    decimal.Zero,
+				RemainingQuantity: quantity,
+				Status:            models.PENDING,
+				CreatedAt:         time.Now().Add(-time.Duration(i*10+j) * time.Second),
+				UpdatedAt:         time.Now(),
+			}
+
+			orderbook.AddOrder(askOrder)
+			orderCount++
 		}
-
-		orderbook.AddOrder(askOrder)
 	}
 
-	return nil
+	return orderCount
 }
 
-// generateRealisticQuantity creates realistic order quantities based on the market
-func (e *Engine) generateRealisticQuantity(ticker string, price decimal.Decimal) decimal.Decimal {
-	// Seed random number generator based on ticker for consistent quantities
-	hash := 0
-	for _, char := range ticker {
-		hash = hash*31 + int(char)
-	}
-
-	// Create different quantity ranges based on asset type
+// generateHighLiquidityQuantity creates much larger quantities for high liquidity appearance
+func (e *Engine) generateHighLiquidityQuantity(ticker string, price decimal.Decimal, variation int) decimal.Decimal {
+	// Use variation for different order sizes at same price level
+	rand.Seed(int64(len(ticker)*1000 + variation*100))
+	
+	// Create different quantity ranges based on asset type with MUCH higher liquidity
 	switch {
 	case strings.Contains(ticker, "BTC"):
-		// Bitcoin: smaller quantities (0.01 to 2.5 BTC)
-		base := 0.01 + float64(hash%100)/100.0*2.49
+		// Bitcoin: 0.1 to 15 BTC per order (much higher than before)
+		base := 0.1 + rand.Float64()*14.9
 		return decimal.NewFromFloat(base)
 
 	case strings.Contains(ticker, "ETH"):
-		// Ethereum: medium quantities (0.1 to 25 ETH)
-		base := 0.1 + float64(hash%150)/150.0*24.9
+		// Ethereum: 1 to 100 ETH per order (much higher)
+		base := 1 + rand.Float64()*99
 		return decimal.NewFromFloat(base)
 
 	case strings.Contains(ticker, "USDT") || strings.Contains(ticker, "USD"):
-		// Stablecoins: larger quantities (100 to 50000)
-		base := 100 + float64(hash%200)*248.5
+		// Stablecoins: 1000 to 500000 (very high liquidity)
+		base := 1000 + rand.Float64()*499000
 		return decimal.NewFromFloat(base)
 
 	case strings.Contains(ticker, "SHIB") || strings.Contains(ticker, "PEPE"):
-		// Meme coins: very large quantities
-		base := 1000000 + float64(hash%300)*16666.67
+		// Meme coins: 10M to 1B tokens (massive liquidity)
+		base := 10000000 + rand.Float64()*990000000
 		return decimal.NewFromFloat(base)
 
 	case strings.Contains(ticker, "DOGE"):
-		// Dogecoin: large quantities
-		base := 1000 + float64(hash%250)*198
+		// Dogecoin: 10K to 1M DOGE (high liquidity)
+		base := 10000 + rand.Float64()*990000
+		return decimal.NewFromFloat(base)
+
+	case strings.Contains(ticker, "SOL"):
+		// Solana: 10 to 1000 SOL (high liquidity)
+		base := 10 + rand.Float64()*990
 		return decimal.NewFromFloat(base)
 
 	default:
-		// Other altcoins: medium-large quantities (1 to 500)
-		base := 1 + float64(hash%200)*2.495
+		// Other altcoins: 10 to 5000 tokens (much higher)
+		base := 10 + rand.Float64()*4990
 		return decimal.NewFromFloat(base)
 	}
 }
@@ -310,6 +328,22 @@ func (e *Engine) Consume(message *messages.MessageFromAPI) {
 
 		e.Broker.PublishToClient("DEPTH", message.ClientId, depth)
 
+	case "GET_OPEN_ORDERS":
+		dataBytes, _ := json.Marshal(message.Data)
+
+		var getOpenOrdersReq messages.GetOpenOrdersRequest
+
+		err := json.Unmarshal(dataBytes, &getOpenOrdersReq)
+
+		if err != nil {
+			log.Printf("Failed to parse getOpenOrders request: %v", err)
+			return
+		}
+
+		orders := e.GetOpenOrders(getOpenOrdersReq.UserID, getOpenOrdersReq.Market)
+
+		e.Broker.PublishToClient("OPEN_ORDERS", message.ClientId, orders)
+
 	case "GET_MARKETS":
 		markets := e.GetAllMarkets()
 		e.Broker.PublishToClient("MARKETS", message.ClientId, markets)
@@ -354,9 +388,32 @@ func (e *Engine) GetDepth(Market string) *messages.DepthResponse {
 		log.Printf("Error occured while finding orderbook")
 	}
 
-	depth := orderbook.GetDepthResponse(10)
+	depth := orderbook.GetDepthResponse(50) // Increased from 10 to 50 levels
 
 	return depth
+}
+
+func (e *Engine) GetOpenOrders(userID uuid.UUID, market string) []models.Order {
+	var openOrders []models.Order
+
+	// If market is specified, only get orders for that market
+	if market != "" {
+		orderbook, err := e.FindOrCreateOrderbook(market)
+		if err != nil {
+			log.Printf("Error finding orderbook for market %s: %v", market, err)
+			return openOrders
+		}
+		orders := orderbook.GetOpenOrders(userID)
+		return orders
+	}
+
+	// If no market specified, get orders from all markets
+	for _, ob := range e.Orderbooks {
+		orders := ob.GetOpenOrders(userID)
+		openOrders = append(openOrders, orders...)
+	}
+
+	return openOrders
 }
 
 func (e *Engine) FindOrCreateOrderbook(marketID string) (orderBook *orderbook.OrderBook, err error) {
