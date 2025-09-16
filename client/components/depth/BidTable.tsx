@@ -63,7 +63,10 @@ function Bid({
   const formatPrice = (price: string) => {
     const num = parseFloat(price);
     if (isNaN(num)) return "0.00000";
-    return num.toFixed(2); // Show 2 decimals for readability
+    // Calculate decimal places based on precision
+    const decimalPlaces =
+      precision < 0.001 ? 5 : precision < 0.01 ? 4 : precision < 0.1 ? 3 : 2;
+    return num.toFixed(decimalPlaces);
   };
 
   const formatQuantity = (quantity: string) => {

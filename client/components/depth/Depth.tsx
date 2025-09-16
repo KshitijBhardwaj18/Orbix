@@ -35,7 +35,7 @@ export function Depth({ market, precision = 0.00001 }: DepthProps) {
         if (d.bids?.length && d.asks?.length) {
           const bestBid = parseFloat(d.bids[0][0]);
           const bestAsk = parseFloat(d.asks[0][0]);
-          const midPrice = ((bestBid + bestAsk) / 2).toFixed(2);
+          const midPrice = ((bestBid + bestAsk) / 2).toFixed(5); // Show 5 decimal places
           setCurrentPrice(midPrice);
           console.log("💰 Current price set to:", midPrice);
         }

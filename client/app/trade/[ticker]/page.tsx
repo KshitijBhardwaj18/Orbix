@@ -38,10 +38,10 @@ export default function Trade({ params }: TradePageProps) {
   return (
     <div className="bg-secondary h-full p-5">
       <div className="flex flex-row gap-2">
-        <div className="w-9/10 flex flex-col gap-3">
+        <div className=" flex flex-col gap-3">
           <TickerStats ticker={ticker} />
           <div className="flex flex-row gap-3">
-            <div className="w-3/4">
+            <div className="w-[71%]">
               <Chart ticker={ticker} />
             </div>
             <div className="w-2/8">
@@ -53,7 +53,7 @@ export default function Trade({ params }: TradePageProps) {
           </div>
         </div>
 
-        <div className="w-2/8">
+        <div className="w-3/8">
           <TradingWindow ticker={ticker} onOrderPlaced={setNewOrder} />
         </div>
       </div>
