@@ -331,6 +331,8 @@ func (e *Engine) Consume(message *messages.MessageFromAPI) {
 	case "GET_OPEN_ORDERS":
 		dataBytes, _ := json.Marshal(message.Data)
 
+		log.Printf("Reached here")
+
 		var getOpenOrdersReq messages.GetOpenOrdersRequest
 
 		err := json.Unmarshal(dataBytes, &getOpenOrdersReq)
@@ -394,7 +396,12 @@ func (e *Engine) GetDepth(Market string) *messages.DepthResponse {
 }
 
 func (e *Engine) GetOpenOrders(userID uuid.UUID, market string) []models.Order {
+
 	var openOrders []models.Order
+
+	market = strings.Replace(market, "_", "/", 1)
+	
+
 
 	// If market is specified, only get orders for that market
 	if market != "" {

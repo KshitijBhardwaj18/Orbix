@@ -91,7 +91,7 @@ type DepthResponse struct {
 	Asks   [][2]string `json:"asks"`
 }
 
-func (r *Broker) GetDepth(req *messages.GetDepthRequest) (*DepthResponse, error){
+func (r *Broker) GetDepth(req *messages.GetDepthRequest) (*DepthResponse, error) {
 	clientId := uuid.New().String()
 	
 	pubsub := r.rdb.Subscribe(r.ctx,clientId)

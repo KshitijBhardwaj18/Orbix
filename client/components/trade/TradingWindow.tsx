@@ -8,10 +8,11 @@ import { PlaceOrderRequest, PlaceOrderResponse } from "@/types/order";
 import toast from "react-hot-toast";
 
 interface TradeProps {
-  tricker: string;
+  ticker: string;
+  onOrderPlaced: (order: PlaceOrderResponse) => void;
 }
 
-const Trade = ({ ticker }: { ticker: string }) => {
+const Trade = ({ ticker, onOrderPlaced }: TradeProps) => {
   const [orderType, setOrderType] = useState<string>("BUY");
   const [price, setPrice] = useState<string>(""); // Changed to string with empty default
   const [quantity, setQuantity] = useState<string>(""); // Changed to string with empty default
@@ -39,6 +40,9 @@ const Trade = ({ ticker }: { ticker: string }) => {
 
       console.log(response);
 
+      // Notify parent component about new order
+      onOrderPlaced(response.data);
+
       // Reset form after successful submission
       setPrice("");
       setQuantity("");
@@ -46,6 +50,7 @@ const Trade = ({ ticker }: { ticker: string }) => {
       toast.success("Order Placed");
     } catch (err) {
       console.log(err);
+      toast.error("Failed to place order");
     }
   };
 
