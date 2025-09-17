@@ -349,7 +349,41 @@ func (e *Engine) Consume(message *messages.MessageFromAPI) {
 	case "GET_MARKETS":
 		markets := e.GetAllMarkets()
 		e.Broker.PublishToClient("MARKETS", message.ClientId, markets)
+
+	
+	case "CANCEL_ORDER":
+		dataBytes, _ := json.Marshal(message.Data)
+
+		var cancelOrderRequest messages.CancelOrderRequest
+
+		err := json.Unmarshal(dataBytes, &cancelOrderRequest)
+
+		if err != nil {
+			log.Printf("Failed to parse cancel order request: %v", err)
+			return 
+		}
+
+		cancelledOrder, success := e.CancelOrder(cancelOrderRequest)
+		
+		// Prepare response
+		if success && cancelledOrder != nil {
+			// Order was successfully cancelled
+			e.Broker.PublishToClient("ORDER_CANCELLED", message.ClientId, map[string]interface{}{
+				"success": true,
+				"message": "Order cancelled successfully",
+				"order": cancelledOrder,
+			})
+		} else {
+			// Order cancellation failed
+			e.Broker.PublishToClient("ORDER_CANCELLED", message.ClientId, map[string]interface{}{
+				"success": false,
+				"message": "Order not found or already cancelled",
+				"order": nil,
+			})
+		}
 	}
+
+
 }
 
 func (e *Engine) CreateOrder(orderRequest messages.OrderRequest) (order *models.Order, err error) {
@@ -380,6 +414,24 @@ func (e *Engine) CreateOrder(orderRequest messages.OrderRequest) (order *models.
 	_ = e.LogOrderbooks()
 
 	return order, nil
+}
+
+func (e *Engine) CancelOrder(req messages.CancelOrderRequest) (*models.Order, bool) {
+	// Search through all orderbooks to find and cancel the order
+	for _, orderbook := range e.Orderbooks {
+		// Try to remove the order from this orderbook
+		cancelledOrder, found := orderbook.RemoveOrder(req.OrderID, req.UserID)
+		if found {
+			log.Printf("✅ Order %s cancelled successfully for user %s in market %s", 
+				req.OrderID, req.UserID.String(), orderbook.GetTicker())
+			return cancelledOrder, true
+		}
+	}
+
+	// Order not found in any orderbook
+	log.Printf("❌ Order %s not found for user %s in any market", 
+		req.OrderID, req.UserID.String())
+	return nil, false
 }
 
 func (e *Engine) GetDepth(Market string) *messages.DepthResponse {

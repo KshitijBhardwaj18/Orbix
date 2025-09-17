@@ -122,6 +122,38 @@ func (r *Broker) GetDepth(req *messages.GetDepthRequest) (*DepthResponse, error)
 	}
 }
 
+func (r *Broker) CancelOrderRequest(req *messages.CancelOrderRequest) (bool, error) {
+
+	clientId := uuid.New().String()
+
+	pubsub := r.rdb.Subscribe(r.ctx,clientId)
+	defer pubsub.Close()
+
+	request := &messages.MessageFromAPI{
+		ClientId: clientId,
+		MessageType: "CANCEL_ORDER",
+		Data: req,
+	}
+
+	requestData,_ := json.Marshal(request)
+	err := r.rdb.LPush(r.ctx, "engine_requests",requestData).Err()
+
+	if err != nil {
+		return false, err
+	}
+
+	select {
+	case msg := <- pubsub.Channel():
+		var response bool
+		err := json.Unmarshal([]byte(msg.Payload), &response)
+		return response, err
+	
+	case <- time.After(5 * time.Second):
+		return false, errors.New("engine timeout")
+	}
+
+}
+
 func (r *Broker) GetOpenOrders(req *messages.GetOpenOrdersRequest) ([]models.Order, error) {
 	clientId := uuid.New().String()
 	
@@ -151,6 +183,7 @@ func (r *Broker) GetOpenOrders(req *messages.GetOpenOrdersRequest) ([]models.Ord
 		return nil, errors.New("engine timeout")
 	}
 }
+
 
 func (r *Broker) BRPop(queueName string) (*messages.MessageFromAPI, error) {
 	result, err := r.rdb.BRPop(r.ctx, 0, queueName).Result()

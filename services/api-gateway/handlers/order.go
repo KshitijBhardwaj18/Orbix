@@ -100,6 +100,43 @@ func (h *OrderHandler) PlaceOrder(c *gin.Context) {
 	c.JSON(201, orderResponse)
 }
 
+func (h *OrderHandler) DeleteOrder(c *gin.Context) {
+	var req struct {
+		OrderId string `json:"order_id"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{ "error":err.Error()})
+	}
+
+
+	userIdStr := c.GetString("user_id")
+
+	userID, err := uuid.Parse(userIdStr); 
+	
+	if err != nil {
+		c.JSON(401, gin.H{"Authentication Error": "Erorr authenticating the request"})
+	}
+
+	var cancelReq messages.CancelOrderRequest = messages.CancelOrderRequest{
+		UserID: userID,
+		OrderID: req.OrderId,
+	}
+
+	response, err := h.broker.CancelOrderRequest(&cancelReq)
+
+	if err != nil {
+		c.JSON(403, gin.H{"Error": err})
+	}
+
+	if(response ){
+		c.JSON(201, gin.H{"message": "Order Deleted Successfully"})
+	}else {
+		c.JSON(201, gin.H{"message": "Cannot delete Order"})
+	}
+
+}
+
 func (h *OrderHandler) GetOpenOrders(c *gin.Context) {
 	userIDstr := c.GetString("user_id")
 	userID, err := uuid.Parse(userIDstr)
@@ -109,12 +146,12 @@ func (h *OrderHandler) GetOpenOrders(c *gin.Context) {
 		return
 	}
 
-	// Get market parameter (optional - if provided, filter by market)
+	
 	market := c.Query("market")
 
 	req := &messages.GetOpenOrdersRequest{
 		UserID: userID,
-		Market: market, // Empty string means all markets
+		Market: market, 
 	}
 
 	response, err := h.broker.GetOpenOrders(req)
@@ -161,3 +198,4 @@ func (h *OrderHandler) LogOrderbooks(c *gin.Context) {
 
 	c.JSON(200, response)
 }
+

@@ -49,8 +49,8 @@ export function Depth({ market, precision = 0.00001 }: DepthProps) {
     fetchDepthData();
 
     // Poll every 5 seconds for live updates
-    const interval = setInterval(fetchDepthData, 5000);
-    return () => clearInterval(interval);
+    // const interval = setInterval(fetchDepthData, 5000);
+    // return () => clearInterval(interval);
   }, [market]);
 
   if (loading) {

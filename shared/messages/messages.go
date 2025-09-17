@@ -17,13 +17,15 @@ type OrderRequest struct {
 	Type     models.OrderType `gorm:"type:varchar(5);not null"`
 }
 
+
+
 type GetOpenOrdersRequest struct {
 	UserID uuid.UUID `json:"user_id"`
 	Market string    `json:"market"` // Optional: filter by market
 }
 
 type CancelOrderRequest struct {
-	UserID  string `json:"user_id"`
+	UserID  uuid.UUID `json:"user_id"`
 	OrderID string `json:"order_id"`
 }
 

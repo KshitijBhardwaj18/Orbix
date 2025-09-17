@@ -201,6 +201,47 @@ func (o *OrderBook) GetOpenOrders(userID uuid.UUID) []models.Order {
 	return openOrders
 }
 
+// RemoveOrder removes an order from the orderbook by order ID and user ID
+// Returns true if order was found and removed, false otherwise
+func (o *OrderBook) RemoveOrder(orderID string, userID uuid.UUID) (*models.Order, bool) {
+	// Parse the order ID string to UUID
+	orderUUID, err := uuid.Parse(orderID)
+	if err != nil {
+		return nil, false
+	}
+
+	// Check in asks first
+	for i, ask := range o.Asks {
+		if ask.ID == orderUUID && ask.UserID == userID {
+			// Found the order in asks, remove it
+			removedOrder := *ask // Copy the order before removing
+			removedOrder.Status = models.CANCELLED
+			removedOrder.UpdatedAt = time.Now()
+			
+			// Remove from slice
+			o.Asks = append(o.Asks[:i], o.Asks[i+1:]...)
+			return &removedOrder, true
+		}
+	}
+
+	// Check in bids
+	for i, bid := range o.Bids {
+		if bid.ID == orderUUID && bid.UserID == userID {
+			// Found the order in bids, remove it
+			removedOrder := *bid // Copy the order before removing
+			removedOrder.Status = models.CANCELLED
+			removedOrder.UpdatedAt = time.Now()
+			
+			// Remove from slice
+			o.Bids = append(o.Bids[:i], o.Bids[i+1:]...)
+			return &removedOrder, true
+		}
+	}
+
+	// Order not found
+	return nil, false
+}
+
 type DepthLevel struct {
 	Price    decimal.Decimal `json:"price"`
 	Quantity decimal.Decimal `json:"quantity"`
