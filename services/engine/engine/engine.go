@@ -367,18 +367,16 @@ func (e *Engine) Consume(message *messages.MessageFromAPI) {
 		
 		// Prepare response
 		if success && cancelledOrder != nil {
-			// Order was successfully cancelled
-			e.Broker.PublishToClient("ORDER_CANCELLED", message.ClientId, map[string]interface{}{
-				"success": true,
-				"message": "Order cancelled successfully",
-				"order": cancelledOrder,
+			e.Broker.PublishToClient("ORDER_CANCELLED", message.ClientId, messages.CancelOrderResponse{
+				Success: true,
+				Message: "Order cancelled successfully",
+				OrderId: cancelOrderRequest.OrderID,
 			})
 		} else {
-			// Order cancellation failed
-			e.Broker.PublishToClient("ORDER_CANCELLED", message.ClientId, map[string]interface{}{
-				"success": false,
-				"message": "Order not found or already cancelled",
-				"order": nil,
+			e.Broker.PublishToClient("ORDER_CANCELLED", message.ClientId, messages.CancelOrderResponse{
+				Success: false,
+				Message: "Order cancellation failed",
+				OrderId: "",
 			})
 		}
 	}

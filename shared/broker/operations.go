@@ -122,7 +122,7 @@ func (r *Broker) GetDepth(req *messages.GetDepthRequest) (*DepthResponse, error)
 	}
 }
 
-func (r *Broker) CancelOrderRequest(req *messages.CancelOrderRequest) (bool, error) {
+func (r *Broker) CancelOrderRequest(req *messages.CancelOrderRequest) (messages.CancelOrderResponse, error) {
 
 	clientId := uuid.New().String()
 
@@ -139,17 +139,25 @@ func (r *Broker) CancelOrderRequest(req *messages.CancelOrderRequest) (bool, err
 	err := r.rdb.LPush(r.ctx, "engine_requests",requestData).Err()
 
 	if err != nil {
-		return false, err
+		return messages.CancelOrderResponse{
+			Success: false,
+			Message: "Failed to send cancel request to engine",
+			OrderId: req.OrderID,
+		}, err
 	}
 
 	select {
 	case msg := <- pubsub.Channel():
-		var response bool
+		var response messages.CancelOrderResponse
 		err := json.Unmarshal([]byte(msg.Payload), &response)
 		return response, err
 	
 	case <- time.After(5 * time.Second):
-		return false, errors.New("engine timeout")
+		return messages.CancelOrderResponse{
+			Success: false,
+			Message: "Engine timeout - cancel request failed",
+			OrderId: req.OrderID,
+		}, errors.New("engine timeout")
 	}
 
 }

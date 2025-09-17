@@ -29,6 +29,12 @@ type CancelOrderRequest struct {
 	OrderID string `json:"order_id"`
 }
 
+type CancelOrderResponse struct {
+	Success bool `json:"success"`
+	Message string `json:"message"`
+	OrderId string `json:"order_id"`
+}
+
 type OrderResponse struct {
 	OrderID           string          `json:"order_id"`
 	Status            string          `json:"status"`

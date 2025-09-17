@@ -101,40 +101,65 @@ func (h *OrderHandler) PlaceOrder(c *gin.Context) {
 }
 
 func (h *OrderHandler) DeleteOrder(c *gin.Context) {
+	log.Printf("🚀 DeleteOrder function started")
+	
 	var req struct {
 		OrderId string `json:"order_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{ "error":err.Error()})
+		log.Printf("❌ Failed to bind JSON: %v", err)
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
 	}
 
+	log.Printf("📋 Request received - OrderId: %s", req.OrderId)
 
 	userIdStr := c.GetString("user_id")
+	log.Printf("🔍 User ID from context: '%s'", userIdStr)
 
-	userID, err := uuid.Parse(userIdStr); 
-	
-	if err != nil {
-		c.JSON(401, gin.H{"Authentication Error": "Erorr authenticating the request"})
+	if userIdStr == "" {
+		log.Printf("❌ No user_id found in context")
+		c.JSON(401, gin.H{"error": "User not authenticated"})
+		return
 	}
+
+	userID, err := uuid.Parse(userIdStr)
+	if err != nil {
+		log.Printf("❌ Failed to parse user ID '%s': %v", userIdStr, err)
+		c.JSON(401, gin.H{"Authentication Error": "Error authenticating the request"})
+		return
+	}
+
+	log.Printf("👤 Parsed user ID: %s", userID.String())
 
 	var cancelReq messages.CancelOrderRequest = messages.CancelOrderRequest{
-		UserID: userID,
+		UserID:  userID,
 		OrderID: req.OrderId,
 	}
+
+	log.Printf("📤 Sending cancel request to broker - OrderID: %s, UserID: %s", 
+		cancelReq.OrderID, cancelReq.UserID.String())
 
 	response, err := h.broker.CancelOrderRequest(&cancelReq)
 
 	if err != nil {
-		c.JSON(403, gin.H{"Error": err})
+		log.Printf("❌ Broker error: %v", err)
+		c.JSON(500, gin.H{"error": "Failed to cancel order", "details": err.Error()})
+		return
 	}
 
-	if(response ){
-		c.JSON(201, gin.H{"message": "Order Deleted Successfully"})
-	}else {
-		c.JSON(201, gin.H{"message": "Cannot delete Order"})
-	}
+	log.Printf("📥 Broker response - Success: %t, Message: '%s', OrderId: '%s'", 
+		response.Success, response.Message, response.OrderId)
 
+	if response.Success {
+		log.Printf("✅ Order %s cancelled successfully for user %s", 
+			response.OrderId, userID.String())
+		c.JSON(200, response)
+	} else {
+		log.Printf("⚠️ Order cancellation failed - %s", response.Message)
+		c.JSON(400, response)
+	}
 }
 
 func (h *OrderHandler) GetOpenOrders(c *gin.Context) {
