@@ -379,6 +379,9 @@ func (e *Engine) Consume(message *messages.MessageFromAPI) {
 				OrderId: "",
 			})
 		}
+
+	case "TRADE_EVENT":
+		
 	}
 
 
@@ -406,12 +409,41 @@ func (e *Engine) CreateOrder(orderRequest messages.OrderRequest) (order *models.
 		UpdatedAt:         time.Now(),
 	}
 
-	order = orderbook.AddOrder(order)
+	log.Printf("📋 Processing order: %s for market %s", order.ID.String(), orderRequest.MarketID)
 
-	// Log orderbooks for debugging (you might want to remove this in production)
-	_ = e.LogOrderbooks()
+	// 🎯 Process order and get EVERYTHING that happened
+	result := orderbook.AddOrder(order)
 
-	return order, nil
+	// 🎯 Now I KNOW exactly what to emit:
+
+	// 1. Emit the incoming order (placed)
+	e.EmitOrderEvent("ORDER_PLACED", orderRequest.MarketID, result.IncomingOrder)
+
+	// 2. Emit all existing orders that were updated
+	for _, updatedOrder := range result.UpdatedOrders {
+		log.Printf("📈 Order %s was updated: %s", updatedOrder.ID.String(), updatedOrder.Status)
+		e.EmitOrderEvent("ORDER_UPDATED", orderRequest.MarketID, updatedOrder)
+	}
+
+	// 3. Emit all trades that happened
+	for _, trade := range result.GeneratedTrades {
+		log.Printf("💱 Trade executed: %s at price %s", trade.ID.String(), trade.Price.String())
+		e.EmitTradeEvent("TRADE_EXECUTED", orderRequest.MarketID, trade)
+	}
+
+	// 4. Emit final status of incoming order if it changed
+	if result.IncomingOrder.Status != models.PENDING {
+		log.Printf("📊 Order %s final status: %s", result.IncomingOrder.ID.String(), result.IncomingOrder.Status)
+		e.EmitOrderEvent("ORDER_UPDATED", orderRequest.MarketID, result.IncomingOrder)
+	}
+
+	// 5. Emit orderbook update for real-time WebSocket
+	e.EmitOrderbookUpdate(orderRequest.MarketID)
+
+	log.Printf("✅ Order processing complete: %d trades, %d orders updated", 
+		len(result.GeneratedTrades), len(result.UpdatedOrders))
+
+	return result.IncomingOrder, nil
 }
 
 func (e *Engine) CancelOrder(req messages.CancelOrderRequest) (*models.Order, bool) {
@@ -516,4 +548,106 @@ func (e *Engine) LogOrderbooks() *OrderbooksResponse {
 		TotalOrderbooks: len(e.Orderbooks),
 		Orderbooks:      orderbooks,
 	}
+}
+
+// 🎯 Event emission methods with clean channel strategy
+
+func (e *Engine) EmitOrderEvent(eventType, market string, order *models.Order) {
+	// 🗄️ DB Event - Simple channel names for database processor
+	dbChannel := fmt.Sprintf("db@%s", strings.ToLower(strings.Replace(eventType, "ORDER_", "", 1)))
+	
+	dbEventData := map[string]interface{}{
+		"order":     order, // Full model for database persistence
+		"market":    market,
+		"timestamp": time.Now().Unix(),
+	}
+	e.publishEvent(dbChannel, dbEventData)
+	
+	// 📡 WebSocket Event - Only for updates (not placement, handled by HTTP)
+	if eventType != "ORDER_PLACED" {
+		wsChannel := fmt.Sprintf("order@%s", strings.Replace(market, "/", "_", 1))
+		
+		// Lightweight order data for WebSocket clients
+		lightOrder := map[string]interface{}{
+			"id":                 order.ID.String(),
+			"user_id":            order.UserID.String(),
+			"side":               order.Side,
+			"status":             order.Status,
+			"filled_quantity":    order.FilledQuantity.String(),
+			"remaining_quantity": order.RemainingQuantity.String(),
+			"timestamp":          order.UpdatedAt.Unix(),
+		}
+		
+		if order.Price != nil {
+			lightOrder["price"] = order.Price.String()
+		}
+		
+		wsEventData := map[string]interface{}{
+			"order":     lightOrder,
+			"market":    market,
+			"timestamp": time.Now().Unix(),
+		}
+		e.publishEvent(wsChannel, wsEventData)
+	}
+}
+
+func (e *Engine) EmitTradeEvent(eventType, market string, trade models.Trade) {
+	// 🗄️ DB Event - Single channel for all trade events
+	dbEventData := map[string]interface{}{
+		"trade":     trade, // Full model for database
+		"market":    market,
+		"timestamp": time.Now().Unix(),
+	}
+	e.publishEvent("db@trade", dbEventData)
+	
+	// 📡 WebSocket Event - Market specific lightweight trade
+	wsChannel := fmt.Sprintf("trade@%s", strings.Replace(market, "/", "_", 1))
+	
+	lightTrade := map[string]interface{}{
+		"id":            trade.ID.String(),
+		"price":         trade.Price.String(),
+		"quantity":      trade.Quantity.String(),
+		"quote_quantity": trade.QuoteQuantity.String(),
+		"is_buyer_maker": trade.IsBuyerMaker,
+		"timestamp":     trade.CreatedAt.Unix(),
+	}
+	
+	wsEventData := map[string]interface{}{
+		"trade":     lightTrade,
+		"market":    market,
+		"timestamp": time.Now().Unix(),
+	}
+	e.publishEvent(wsChannel, wsEventData)
+}
+
+func (e *Engine) EmitOrderbookUpdate(market string) {
+	depth := e.GetDepth(market)
+	
+	// 📡 WebSocket Event - Market specific orderbook updates
+	wsChannel := fmt.Sprintf("depth@%s", strings.Replace(market, "/", "_", 1))
+	
+	wsEventData := map[string]interface{}{
+		"depth":     depth,
+		"market":    market,
+		"timestamp": time.Now().Unix(),
+	}
+	
+	e.publishEvent(wsChannel, wsEventData)
+}
+
+func (e *Engine) publishEvent(channel string, data interface{}) {
+	eventBytes, err := json.Marshal(data)
+	if err != nil {
+		log.Printf("❌ Failed to marshal event data: %v", err)
+		return
+	}
+
+	// Publish to Redis using the broker
+	go func() {
+		if err := e.Broker.PublishEvent(channel, eventBytes); err != nil {
+			log.Printf("❌ Failed to publish event to channel %s: %v", channel, err)
+		} else {
+			log.Printf("📡 Published event to channel: %s", channel)
+		}
+	}()
 }

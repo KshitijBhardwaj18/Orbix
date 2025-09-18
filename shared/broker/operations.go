@@ -9,6 +9,7 @@ import (
 	"github.com/KshitijBhardwaj18/Orbix/shared/messages"
 	"github.com/KshitijBhardwaj18/Orbix/shared/models"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 func (r *Broker) CreateOrder(order *messages.OrderRequest) (*models.Order, error) {
@@ -218,4 +219,18 @@ func (r *Broker) PublishToClient(Type string, clientID string, response interfac
 	}
 
 	return r.rdb.Publish(r.ctx, clientID, data).Err()
+}
+
+// 🎯 Event publishing methods for industry-standard event-driven architecture
+
+func (r *Broker) PublishEvent(channel string, data []byte) error {
+	return r.rdb.Publish(r.ctx, channel, data).Err()
+}
+
+func (r *Broker) SubscribeToChannel(channel string) *redis.PubSub {
+	return r.rdb.Subscribe(r.ctx, channel)
+}
+
+func (r *Broker) SubscribeToPattern(pattern string) *redis.PubSub {
+	return r.rdb.PSubscribe(r.ctx, pattern)
 }

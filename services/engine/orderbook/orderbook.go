@@ -12,6 +12,14 @@ import (
 	"sort"
 )
 
+// MatchingResult contains all the changes that happened during order processing
+type MatchingResult struct {
+	IncomingOrder    *models.Order   `json:"incoming_order"`
+	UpdatedOrders    []*models.Order `json:"updated_orders"`    // Orders that were modified
+	GeneratedTrades  []models.Trade  `json:"generated_trades"`  // Trades that happened
+	RemovedOrderIDs  []uuid.UUID     `json:"removed_order_ids"` // Orders that were filled and removed
+}
+
 type OrderBook struct {
 	BaseAsset    string
 	QuoteAsset   string
@@ -56,35 +64,46 @@ func (o *OrderBook) sortAsks() {
 	})
 }
 
-func (o *OrderBook) AddOrder(order *models.Order) *models.Order {
-	if order.Side == "BUY" {
-		o.matchBid(order)
-		if order.FilledQuantity.Equal(order.Quantity) {
-			order.Status = models.FILLED
-			return order
-		}
-		if order.FilledQuantity.GreaterThan(decimal.Zero) {
-			order.Status = models.PARTIAL
-		}
-		o.Bids = append(o.Bids, order) // Store pointer, not copy
-		o.sortBids() // Sort bids by price (highest first)
-		return order
-	} else {
-		o.matchAsk(order)
-		if order.FilledQuantity.Equal(order.Quantity) {
-			order.Status = models.FILLED
-			return order
-		}
-		if order.FilledQuantity.GreaterThan(decimal.Zero) {
-			order.Status = models.PARTIAL
-		}
-		o.Asks = append(o.Asks, order) // Store pointer, not copy
-		o.sortAsks() // Sort asks by price (lowest first)
-		return order
+func (o *OrderBook) AddOrder(order *models.Order) *MatchingResult {
+	result := &MatchingResult{
+		IncomingOrder:   order,
+		UpdatedOrders:   []*models.Order{},
+		GeneratedTrades: []models.Trade{},
+		RemovedOrderIDs: []uuid.UUID{},
 	}
+
+	if order.Side == "BUY" {
+		o.matchBid(order, result)
+		if order.FilledQuantity.Equal(order.Quantity) {
+			order.Status = models.FILLED
+		} else if order.FilledQuantity.GreaterThan(decimal.Zero) {
+			order.Status = models.PARTIAL
+		}
+		
+		// Only add to orderbook if not fully filled
+		if order.Status != models.FILLED {
+			o.Bids = append(o.Bids, order)
+			o.sortBids()
+		}
+	} else {
+		o.matchAsk(order, result)
+		if order.FilledQuantity.Equal(order.Quantity) {
+			order.Status = models.FILLED
+		} else if order.FilledQuantity.GreaterThan(decimal.Zero) {
+			order.Status = models.PARTIAL
+		}
+		
+		// Only add to orderbook if not fully filled
+		if order.Status != models.FILLED {
+			o.Asks = append(o.Asks, order)
+			o.sortAsks()
+		}
+	}
+
+	return result
 }
 
-func (o *OrderBook) matchBid(order *models.Order) {
+func (o *OrderBook) matchBid(order *models.Order, result *MatchingResult) {
 	// Sort asks to ensure best prices (lowest) are matched first
 	o.sortAsks()
 	
@@ -101,9 +120,13 @@ func (o *OrderBook) matchBid(order *models.Order) {
 			// Update ask order status
 			if o.Asks[i].RemainingQuantity.Equal(decimal.Zero) {
 				o.Asks[i].Status = models.FILLED
+				result.RemovedOrderIDs = append(result.RemovedOrderIDs, o.Asks[i].ID)
 			} else if o.Asks[i].FilledQuantity.GreaterThan(decimal.Zero) {
 				o.Asks[i].Status = models.PARTIAL
 			}
+
+			// Track this order was updated
+			result.UpdatedOrders = append(result.UpdatedOrders, o.Asks[i])
 
 			trade := models.Trade{
 				ID:            uuid.New(),
@@ -119,6 +142,8 @@ func (o *OrderBook) matchBid(order *models.Order) {
 				CreatedAt:     time.Now(),
 			}
 
+			// Track this trade was generated
+			result.GeneratedTrades = append(result.GeneratedTrades, trade)
 			order.Trades = append(order.Trades, trade)
 			o.CurrentPrice = trade.Price
 			o.LastTradeId = trade.ID.String()
@@ -133,7 +158,7 @@ func (o *OrderBook) matchBid(order *models.Order) {
 	}
 }
 
-func (o *OrderBook) matchAsk(order *models.Order) {
+func (o *OrderBook) matchAsk(order *models.Order, result *MatchingResult) {
 	// Sort bids to ensure best prices (highest) are matched first
 	o.sortBids()
 	
@@ -150,9 +175,13 @@ func (o *OrderBook) matchAsk(order *models.Order) {
 			// Update bid order status
 			if o.Bids[i].RemainingQuantity.Equal(decimal.Zero) {
 				o.Bids[i].Status = models.FILLED
+				result.RemovedOrderIDs = append(result.RemovedOrderIDs, o.Bids[i].ID)
 			} else if o.Bids[i].FilledQuantity.GreaterThan(decimal.Zero) {
 				o.Bids[i].Status = models.PARTIAL
 			}
+
+			// Track this order was updated
+			result.UpdatedOrders = append(result.UpdatedOrders, o.Bids[i])
 
 			trade := models.Trade{
 				ID:            uuid.New(),
@@ -168,6 +197,8 @@ func (o *OrderBook) matchAsk(order *models.Order) {
 				CreatedAt:     time.Now(),
 			}
 
+			// Track this trade was generated
+			result.GeneratedTrades = append(result.GeneratedTrades, trade)
 			order.Trades = append(order.Trades, trade)
 			o.CurrentPrice = trade.Price
 			o.LastTradeId = trade.ID.String()

@@ -57,6 +57,8 @@ type TradeEvent struct {
 	Timestamp   string `json:"timestamp"`
 }
 
+
+
 type OrderBookUpdate struct {
 	Symbol string           `json:"symbol"`
 	Bids   []OrderBookLevel `json:"bids"`
