@@ -9,109 +9,68 @@ import (
 	"github.com/KshitijBhardwaj18/Orbix/services/db/config"
 	"github.com/KshitijBhardwaj18/Orbix/shared/broker"
 	"github.com/KshitijBhardwaj18/Orbix/shared/models"
-	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
-type DatabaseService struct {
+type EventProcessor struct {
 	db     *gorm.DB
 	broker *broker.Broker
 }
 
 func main() {
+	// Initialize DB and broker
 	db, err := config.ConnectDB()
 	if err != nil {
 		log.Fatal("Database connection failed:", err)
 	}
 
-	// Create database extensions and migrate schema
-	db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
-	err = db.AutoMigrate(&models.User{}, &models.Market{}, &models.Order{}, &models.Trade{}, &models.Balance{})
-	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
-	}
-	log.Println("✅ Database migrated successfully")
-
-	// Initialize broker for event processing
 	brokerInstance := broker.NewRedisClient()
-	dbService := &DatabaseService{
-		db:     db,
-		broker: brokerInstance,
-	}
+	processor := &EventProcessor{db: db, broker: brokerInstance}
 
-	// Start event processing in background
-	go dbService.startEventProcessing()
-
-	// Start HTTP health check server
-	go dbService.startHealthServer()
-
-	// Keep the service running
-	log.Println("🚀 Database Service with Event Processing is running...")
-	select {}
+	log.Println("🚀 Starting Event Processor...")
+	processor.Start()
 }
 
-func (ds *DatabaseService) startHealthServer() {
-	router := gin.Default()
+func (ep *EventProcessor) Start() {
+	// Subscribe to critical database events
+	go ep.processOrderEvents()
+	go ep.processTradeEvents()
+	go ep.processTickerEvents() // 🎯 NEW: Process ticker events
 
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status":  "healthy",
-			"service": "database-service-with-events",
-			"features": []string{"schema-migration", "event-processing", "real-time-updates"},
-		})
-	})
-
-	log.Println("🩺 Health check server running on port 8083")
-	router.Run(":8083")
+	select {} // Keep running
 }
 
-func (ds *DatabaseService) startEventProcessing() {
-	log.Println("🎯 Starting event processing...")
-
-	// Subscribe to all database events
-	go ds.processOrderEvents()
-	go ds.processTradeEvents()
-	go ds.processTickerEvents()
-
-	log.Println("✅ Event processors started successfully")
-}
-
-func (ds *DatabaseService) processOrderEvents() {
+func (ep *EventProcessor) processOrderEvents() {
 	// Subscribe to order events
-	pubsub := ds.broker.SubscribeToPattern("db@order*")
+	pubsub := ep.broker.SubscribeToPattern("db@order*")
 	defer pubsub.Close()
 
-	log.Println("👂 Listening for order events: db@orderplaced, db@orderupdated")
-
 	for msg := range pubsub.Channel() {
-		ds.handleOrderEvent(msg.Channel, msg.Payload)
+		ep.handleOrderEvent(msg.Channel, msg.Payload)
 	}
 }
 
-func (ds *DatabaseService) processTradeEvents() {
-	pubsub := ds.broker.SubscribeToChannel("db@trade")
+func (ep *EventProcessor) processTradeEvents() {
+	pubsub := ep.broker.SubscribeToChannel("db@trade")
 	defer pubsub.Close()
 
-	log.Println("👂 Listening for trade events: db@trade")
-
 	for msg := range pubsub.Channel() {
-		ds.handleTradeEvent(msg.Payload)
+		ep.handleTradeEvent(msg.Payload)
 	}
 }
 
-func (ds *DatabaseService) processTickerEvents() {
-	pubsub := ds.broker.SubscribeToChannel("db@ticker")
+// 🎯 NEW: Process ticker events
+func (ep *EventProcessor) processTickerEvents() {
+	pubsub := ep.broker.SubscribeToChannel("db@ticker")
 	defer pubsub.Close()
 
-	log.Println("👂 Listening for ticker events: db@ticker")
-
 	for msg := range pubsub.Channel() {
-		ds.handleTickerEvent(msg.Payload)
+		ep.handleTickerEvent(msg.Payload)
 	}
 }
 
-func (ds *DatabaseService) handleOrderEvent(channel, payload string) {
+func (ep *EventProcessor) handleOrderEvent(channel, payload string) {
 	var eventData map[string]interface{}
 	if err := json.Unmarshal([]byte(payload), &eventData); err != nil {
 		log.Printf("❌ Failed to parse order event: %v", err)
@@ -127,25 +86,22 @@ func (ds *DatabaseService) handleOrderEvent(channel, payload string) {
 
 	if strings.Contains(channel, "orderplaced") {
 		// 🟢 INSERT new order
-		if err := ds.db.Create(&order).Error; err != nil {
+		if err := ep.db.Create(&order).Error; err != nil {
 			log.Printf("❌ Failed to insert order: %v", err)
 		} else {
-			log.Printf("✅ Inserted order %s (%s %s %s @ %s)", 
-				order.ID.String()[:8], order.Side, order.Quantity.String(), order.MarketID, 
-				func() string { if order.Price != nil { return order.Price.String() } else { return "MARKET" } }())
+			log.Printf("✅ Inserted order %s", order.ID.String())
 		}
 	} else {
 		// 🟡 UPDATE existing order
-		if err := ds.db.Save(&order).Error; err != nil {
+		if err := ep.db.Save(&order).Error; err != nil {
 			log.Printf("❌ Failed to update order: %v", err)
 		} else {
-			log.Printf("✅ Updated order %s (Status: %s, Filled: %s)", 
-				order.ID.String()[:8], order.Status, order.FilledQuantity.String())
+			log.Printf("✅ Updated order %s (Status: %s)", order.ID.String(), order.Status)
 		}
 	}
 }
 
-func (ds *DatabaseService) handleTradeEvent(payload string) {
+func (ep *EventProcessor) handleTradeEvent(payload string) {
 	var eventData map[string]interface{}
 	if err := json.Unmarshal([]byte(payload), &eventData); err != nil {
 		log.Printf("❌ Failed to parse trade event: %v", err)
@@ -160,16 +116,16 @@ func (ds *DatabaseService) handleTradeEvent(payload string) {
 	}
 
 	// 🟢 INSERT trade immediately
-	if err := ds.db.Create(&trade).Error; err != nil {
+	if err := ep.db.Create(&trade).Error; err != nil {
 		log.Printf("❌ Failed to insert trade: %v", err)
 	} else {
-		log.Printf("✅ Inserted trade %s (%s: %s @ %s = $%s)",
-			trade.ID.String()[:8], trade.MarketID, trade.Quantity.String(), 
-			trade.Price.String(), trade.QuoteQuantity.String())
+		log.Printf("✅ Inserted trade %s (Price: %s, Quantity: %s)",
+			trade.ID.String(), trade.Price.String(), trade.Quantity.String())
 	}
 }
 
-func (ds *DatabaseService) handleTickerEvent(payload string) {
+// 🎯 NEW: Handle ticker events
+func (ep *EventProcessor) handleTickerEvent(payload string) {
 	var eventData map[string]interface{}
 	if err := json.Unmarshal([]byte(payload), &eventData); err != nil {
 		log.Printf("❌ Failed to parse ticker event: %v", err)
@@ -185,10 +141,10 @@ func (ds *DatabaseService) handleTickerEvent(payload string) {
 	}
 
 	// Update market statistics in database
-	ds.updateMarketStats(market, tickerStats)
+	ep.updateMarketStats(market, tickerStats)
 }
 
-func (ds *DatabaseService) updateMarketStats(marketID string, stats map[string]interface{}) {
+func (ep *EventProcessor) updateMarketStats(marketID string, stats map[string]interface{}) {
 	// Convert market ID format (BTC/USD -> BTCUSD)
 	dbMarketID := strings.Replace(marketID, "/", "", 1)
 
@@ -221,11 +177,11 @@ func (ds *DatabaseService) updateMarketStats(marketID string, stats map[string]i
 		"last_update_time":         time.Now(),
 	}
 
-	if err := ds.db.Model(&models.Market{}).Where("id = ?", dbMarketID).Updates(updates).Error; err != nil {
+	if err := ep.db.Model(&models.Market{}).Where("id = ?", dbMarketID).Updates(updates).Error; err != nil {
 		log.Printf("❌ Failed to update market stats for %s: %v", marketID, err)
 	} else {
-		log.Printf("📊 Updated %s ticker (Price: %s, Bid: %s, Ask: %s, Spread: %s%%)",
-			marketID, currentPrice.String(), bestBid.String(), bestAsk.String(), spreadPercent.String())
+		log.Printf("✅ Updated market stats for %s (Price: %s, Spread: %s)",
+			marketID, currentPrice.String(), spread.String())
 	}
 }
 

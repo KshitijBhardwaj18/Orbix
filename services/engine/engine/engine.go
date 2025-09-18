@@ -429,6 +429,9 @@ func (e *Engine) CreateOrder(orderRequest messages.OrderRequest) (order *models.
 	for _, trade := range result.GeneratedTrades {
 		log.Printf("💱 Trade executed: %s at price %s", trade.ID.String(), trade.Price.String())
 		e.EmitTradeEvent("TRADE_EXECUTED", orderRequest.MarketID, trade)
+		
+		// 🎯 NEW: Emit ticker update after each trade
+		e.EmitTickerUpdate(orderRequest.MarketID, &trade)
 	}
 
 	// 4. Emit final status of incoming order if it changed
@@ -439,6 +442,12 @@ func (e *Engine) CreateOrder(orderRequest messages.OrderRequest) (order *models.
 
 	// 5. Emit orderbook update for real-time WebSocket
 	e.EmitOrderbookUpdate(orderRequest.MarketID)
+
+	// 🎯 NEW: Always emit ticker update (for bid/ask changes even without trades)
+	if len(result.GeneratedTrades) == 0 {
+		// No trades, but orderbook changed - update ticker with current bid/ask
+		e.EmitTickerUpdate(orderRequest.MarketID, nil)
+	}
 
 	log.Printf("✅ Order processing complete: %d trades, %d orders updated", 
 		len(result.GeneratedTrades), len(result.UpdatedOrders))
@@ -650,4 +659,122 @@ func (e *Engine) publishEvent(channel string, data interface{}) {
 			log.Printf("📡 Published event to channel: %s", channel)
 		}
 	}()
+}
+
+// 📊 Ticker stats calculation and emission methods
+
+func (e *Engine) EmitTickerUpdate(market string, lastTrade *models.Trade) {
+	tickerStats := e.calculateTickerStats(market, lastTrade)
+	
+	// 🗄️ DB Event - Ticker stats for database
+	dbEventData := map[string]interface{}{
+		"ticker_stats": tickerStats,
+		"market":       market,
+		"timestamp":    time.Now().Unix(),
+	}
+	e.publishEvent("db@ticker", dbEventData)
+	
+	// 📡 WebSocket Event - Lightweight ticker for real-time UI
+	wsChannel := fmt.Sprintf("ticker@%s", strings.Replace(market, "/", "_", 1))
+	
+	lightTicker := map[string]interface{}{
+		"symbol":               market,
+		"price":               tickerStats["current_price"],
+		"price_change":        tickerStats["price_change_24h"],
+		"price_change_percent": tickerStats["price_change_percent_24h"],
+		"volume":              tickerStats["volume_24h"],
+		"high":                tickerStats["high_24h"],
+		"low":                 tickerStats["low_24h"],
+		"bid":                 tickerStats["best_bid"],
+		"ask":                 tickerStats["best_ask"],
+		"timestamp":           time.Now().Unix(),
+	}
+	
+	wsEventData := map[string]interface{}{
+		"ticker":    lightTicker,
+		"market":    market,
+		"timestamp": time.Now().Unix(),
+	}
+	e.publishEvent(wsChannel, wsEventData)
+}
+
+func (e *Engine) calculateTickerStats(market string, lastTrade *models.Trade) map[string]interface{} {
+	// Find the orderbook for this market
+	var orderbook *orderbook.OrderBook
+	for _, ob := range e.Orderbooks {
+		if ob.GetTicker() == market {
+			orderbook = ob
+			break
+		}
+	}
+	
+	if orderbook == nil {
+		log.Printf("❌ Orderbook not found for market: %s", market)
+		return make(map[string]interface{})
+	}
+	
+	// Get current price from orderbook or last trade
+	currentPrice := decimal.Zero
+	if lastTrade != nil {
+		currentPrice = lastTrade.Price
+	} else if orderbook.CurrentPrice.GreaterThan(decimal.Zero) {
+		currentPrice = orderbook.CurrentPrice
+	}
+	
+	// Get best bid and ask
+	bestBid, bestAsk := e.getBestBidAsk(orderbook)
+	
+	// Calculate spread
+	spread := decimal.Zero
+	spreadPercent := decimal.Zero
+	if bestBid.GreaterThan(decimal.Zero) && bestAsk.GreaterThan(decimal.Zero) {
+		spread = bestAsk.Sub(bestBid)
+		if bestAsk.GreaterThan(decimal.Zero) {
+			spreadPercent = spread.Div(bestAsk).Mul(decimal.NewFromInt(100))
+		}
+	}
+	
+	// TODO: Calculate 24h stats (volume, high, low, price change)
+	// For now, return current values - you'll need to implement 24h calculations
+	// using a time-series database or cache (Redis) to store historical data
+	
+	return map[string]interface{}{
+		"current_price":            currentPrice.String(),
+		"best_bid":                bestBid.String(),
+		"best_ask":                bestAsk.String(),
+		"spread":                  spread.String(),
+		"spread_percent":          spreadPercent.String(),
+		"volume_24h":              "0", // TODO: Calculate from trades in last 24h
+		"quote_volume_24h":        "0", // TODO: Calculate from trades in last 24h
+		"high_24h":                currentPrice.String(), // TODO: Track 24h high
+		"low_24h":                 currentPrice.String(), // TODO: Track 24h low
+		"price_change_24h":        "0", // TODO: Calculate vs 24h ago price
+		"price_change_percent_24h": "0", // TODO: Calculate percentage change
+		"trade_count_24h":         0, // TODO: Count trades in last 24h
+		"last_trade_time":         time.Now().Unix(),
+		"last_update_time":        time.Now().Unix(),
+	}
+}
+
+func (e *Engine) getBestBidAsk(orderbook *orderbook.OrderBook) (decimal.Decimal, decimal.Decimal) {
+	bestBid := decimal.Zero
+	bestAsk := decimal.Zero
+	
+	// Get best bid (highest price in bids)
+	if len(orderbook.Bids) > 0 {
+		// Bids are sorted highest first
+		if orderbook.Bids[0].Price != nil {
+			bestBid = *orderbook.Bids[0].Price
+		}
+	}
+	
+	// Get best ask (lowest price in asks)  
+	if len(orderbook.Asks) > 0 {
+		// Asks are sorted lowest first
+		if orderbook.Asks[0].Price != nil {
+			bestAsk = *orderbook.Asks[0].Price
+		}
+	}
+	
+	return bestBid, bestAsk
 }
