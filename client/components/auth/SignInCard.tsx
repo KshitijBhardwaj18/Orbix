@@ -21,7 +21,7 @@ function SignInCard() {
         email: email,
         password: password,
       });
-      router.push("/home");
+      router.push("/");
       toast.success("Loggedin successfully");
 
       console.log(response.data);

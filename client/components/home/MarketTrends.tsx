@@ -1,5 +1,7 @@
+"use client";
 // Create client/components/home/MarketCards.tsx
 import React from "react";
+import { useRouter } from "next/navigation";
 
 const marketData = [
   // New tokens
@@ -74,7 +76,7 @@ const marketData = [
     name: "Bonk",
     price: 0.00002161,
     change: "+6.45%",
-    icon: "/symbols/bonk.webp", 
+    icon: "/symbols/bonk.webp",
   },
   {
     category: "gainers",
@@ -128,6 +130,12 @@ const marketData = [
 ];
 
 function MarketTrends() {
+  const router = useRouter();
+
+  const handleRowClick = (symbol: string) => {
+    const ticker = `${symbol}_USD`;
+    router.push(`/trade/${ticker}`);
+  };
   const formatPrice = (price: number) => {
     if (price >= 1000) {
       return `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -184,6 +192,7 @@ function MarketTrends() {
               <div
                 key={index}
                 className="flex cursor-pointer items-center justify-between rounded-lg p-2 transition-colors hover:bg-gray-800/20"
+                onClick={() => handleRowClick(market.symbol)}
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-gray-800">
